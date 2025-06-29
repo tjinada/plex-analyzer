@@ -182,12 +182,23 @@ export class AnalyzerService {
       return cached;
     }
 
+    // Get items, using episodes for TV shows since quality data comes from video files
     const items = await plexService.getLibraryItems(libraryId);
     if (!items || items.length === 0) {
       throw this.createError('No items found in library', 404);
     }
 
-    const qualityAnalysis = await this.generateQualityAnalysis(items, limit);
+    // Check if this is a TV show library and get episodes for quality analysis
+    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    let analysisItems = items;
+    
+    if (isShowLibrary) {
+      console.log(`[AnalyzerService] TV show library detected for quality analysis, fetching episodes`);
+      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for quality analysis`);
+    }
+
+    const qualityAnalysis = await this.generateQualityAnalysis(analysisItems, limit);
     cache.set(cacheKey, qualityAnalysis, this.CACHE_TTL);
     
     return qualityAnalysis;
@@ -204,12 +215,23 @@ export class AnalyzerService {
       return cached;
     }
 
+    // Get items, using episodes for TV shows for more granular content analysis
     const items = await plexService.getLibraryItems(libraryId);
     if (!items || items.length === 0) {
       throw this.createError('No items found in library', 404);
     }
 
-    const contentAnalysis = await this.generateContentAnalysis(items, limit);
+    // Check if this is a TV show library and get episodes for content analysis
+    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    let analysisItems = items;
+    
+    if (isShowLibrary) {
+      console.log(`[AnalyzerService] TV show library detected for content analysis, fetching episodes`);
+      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for content analysis`);
+    }
+
+    const contentAnalysis = await this.generateContentAnalysis(analysisItems, limit);
     cache.set(cacheKey, contentAnalysis, this.CACHE_TTL);
     
     return contentAnalysis;
