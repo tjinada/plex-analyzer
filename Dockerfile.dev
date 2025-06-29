@@ -1,0 +1,27 @@
+FROM node:18-alpine
+
+# Install additional tools for development
+RUN apk add --no-cache curl git
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+# Expose ports for both backend and frontend
+EXPOSE 3000 4200
+
+# Default command (can be overridden in docker-compose)
+CMD ["npm", "run", "dev"]

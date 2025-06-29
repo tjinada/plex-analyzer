@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Production service
+  plex-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: plex-analyzer
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - ./config:/config
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development service
+  plex-analyzer-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: plex-analyzer-dev
+    ports:
+      - "3000:3000"
+      - "4200:4200"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./config:/config
+    environment:
+      - NODE_ENV=development
+    command: npm run dev
+    profiles:
+      - dev

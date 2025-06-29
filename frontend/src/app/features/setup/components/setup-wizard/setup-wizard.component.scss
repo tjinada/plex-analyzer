@@ -1,0 +1,242 @@
+.setup-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.setup-card {
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.form-section {
+  margin: 20px 0;
+  
+  h3 {
+    margin-bottom: 8px;
+    color: #333;
+  }
+  
+  p {
+    color: #666;
+    margin-bottom: 20px;
+  }
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.service-config {
+  margin: 24px 0;
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+  
+  mat-checkbox {
+    margin-bottom: 16px;
+  }
+}
+
+.service-fields {
+  margin-left: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.connection-status {
+  margin: 20px 0;
+  
+  .connection-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    margin: 8px 0;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    
+    .status-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+.step-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  
+  button {
+    min-width: 100px;
+  }
+}
+
+.test-actions {
+  margin: 20px 0;
+  text-align: center;
+  
+  button {
+    min-width: 160px;
+    min-height: 40px;
+    
+    mat-spinner {
+      margin-right: 8px;
+    }
+  }
+}
+
+.help-text {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #e3f2fd;
+  border-radius: 6px;
+  border-left: 4px solid #2196f3;
+  
+  small {
+    color: #1976d2;
+    line-height: 1.4;
+  }
+}
+
+// Connection status styling
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  
+  mat-icon {
+    &.success-icon {
+      color: #4caf50;
+    }
+    
+    &.error-icon {
+      color: #f44336;
+    }
+  }
+  
+  span {
+    &.success {
+      color: #4caf50;
+    }
+    
+    &.error {
+      color: #f44336;
+    }
+  }
+}
+
+// Test button styling
+.test-button {
+  min-width: 160px;
+  margin-right: 12px;
+  
+  mat-spinner {
+    display: inline-block;
+    margin-right: 8px;
+  }
+}
+
+// Service test action styling
+.service-test-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  
+  button {
+    min-width: 140px;
+    
+    mat-spinner {
+      display: inline-block;
+      margin-right: 6px;
+    }
+  }
+  
+  .connection-result {
+    display: flex;
+    align-items: center;
+    
+    mat-icon {
+      &.success-icon {
+        color: #4caf50;
+      }
+      
+      &.error-icon {
+        color: #f44336;
+      }
+    }
+  }
+}
+
+// Setup summary styling
+.setup-summary {
+  margin: 20px 0;
+  
+  h4 {
+    margin-bottom: 16px;
+    color: #333;
+  }
+  
+  mat-list-item {
+    height: auto;
+    padding: 8px 0;
+    
+    mat-icon {
+      &.success-icon {
+        color: #4caf50;
+      }
+    }
+    
+    [mat-line] {
+      &:first-child {
+        font-weight: 500;
+        color: #333;
+      }
+      
+      &:last-child {
+        color: #666;
+        font-size: 14px;
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .setup-container {
+    padding: 10px;
+  }
+  
+  .setup-card {
+    margin: 0;
+  }
+  
+  .service-fields {
+    margin-left: 16px;
+  }
+  
+  .step-actions {
+    flex-direction: column;
+    
+    button {
+      width: 100%;
+    }
+  }
+}

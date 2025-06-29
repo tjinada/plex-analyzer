@@ -1,0 +1,61 @@
+<div class="analyzer-page-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <button mat-icon-button (click)="goBack()" class="back-button">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="header-text">
+        <h1>Library Analysis</h1>
+        <p>Comprehensive analysis of your media library</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="page-content" *ngIf="libraryId">
+    <mat-tab-group 
+      [selectedIndex]="selectedTabIndex" 
+      (selectedTabChange)="onTabChange($event.index)"
+      animationDuration="200ms">
+      
+      <!-- Size Analysis Tab -->
+      <mat-tab label="Size Analysis">
+        <ng-template matTabContent>
+          <app-size-analysis [libraryId]="libraryId"></app-size-analysis>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Quality Analysis Tab -->
+      <mat-tab label="Quality Analysis">
+        <ng-template matTabContent>
+          <app-quality-analysis [libraryId]="libraryId"></app-quality-analysis>
+        </ng-template>
+      </mat-tab>
+
+      <!-- Content Analysis Tab -->
+      <mat-tab label="Content Analysis">
+        <ng-template matTabContent>
+          <app-content-analysis [libraryId]="libraryId"></app-content-analysis>
+        </ng-template>
+      </mat-tab>
+
+    </mat-tab-group>
+  </div>
+
+  <!-- No Library Selected -->
+  <div *ngIf="!libraryId" class="no-library">
+    <mat-card>
+      <mat-card-content>
+        <div class="placeholder-content">
+          <mat-icon class="placeholder-icon">library_books</mat-icon>
+          <h3>No Library Selected</h3>
+          <p>Please select a library to analyze from the dashboard.</p>
+          <button mat-raised-button color="primary" (click)="goBack()">
+            Go to Dashboard
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

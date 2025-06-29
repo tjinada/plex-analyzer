@@ -1,0 +1,119 @@
+<div class="quality-analysis">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Quality Analysis</mat-card-title>
+      <mat-card-subtitle>Video quality and codec distribution</mat-card-subtitle>
+      <div class="header-actions">
+        <button mat-icon-button (click)="refreshAnalysis()" [disabled]="isLoading">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </mat-card-header>
+
+    <mat-card-content>
+      <app-loading *ngIf="isLoading"></app-loading>
+      
+      <div *ngIf="!isLoading && qualityData" class="analysis-content">
+        <!-- Resolution Distribution -->
+        <div class="analysis-section">
+          <h3>Resolution Distribution</h3>
+          <mat-table [dataSource]="qualityData.resolutionDistribution" class="resolution-table">
+            <ng-container matColumnDef="resolution">
+              <mat-header-cell *matHeaderCellDef>Resolution</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.resolution }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="count">
+              <mat-header-cell *matHeaderCellDef>Count</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.count }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="percentage">
+              <mat-header-cell *matHeaderCellDef>Percentage</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ formatPercentage(element.percentage) }}</mat-cell>
+            </ng-container>
+
+            <mat-header-row *matHeaderRowDef="resolutionColumns"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: resolutionColumns;"></mat-row>
+          </mat-table>
+        </div>
+
+        <!-- Codec Distribution -->
+        <div class="analysis-section">
+          <h3>Codec Distribution</h3>
+          <mat-table [dataSource]="qualityData.codecDistribution" class="codec-table">
+            <ng-container matColumnDef="codec">
+              <mat-header-cell *matHeaderCellDef>Codec</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.codec }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="count">
+              <mat-header-cell *matHeaderCellDef>Count</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.count }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="percentage">
+              <mat-header-cell *matHeaderCellDef>Percentage</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ formatPercentage(element.percentage) }}</mat-cell>
+            </ng-container>
+
+            <mat-header-row *matHeaderRowDef="codecColumns"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: codecColumns;"></mat-row>
+          </mat-table>
+        </div>
+
+        <!-- Quality Profiles (if available) -->
+        <div class="analysis-section" *ngIf="qualityData.qualityProfiles && qualityData.qualityProfiles.length > 0">
+          <h3>Quality Profiles</h3>
+          <div class="quality-profiles">
+            <mat-card *ngFor="let profile of qualityData.qualityProfiles" class="profile-card">
+              <mat-card-header>
+                <mat-card-title>{{ profile.name }}</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <div class="profile-stats">
+                  <div class="stat">
+                    <span class="label">Count:</span>
+                    <span class="value">{{ profile.count }}</span>
+                  </div>
+                  <div class="stat">
+                    <span class="label">Percentage:</span>
+                    <span class="value">{{ formatPercentage(profile.percentage) }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="analysis-section">
+          <h3>Quality Summary</h3>
+          <div class="summary-stats">
+            <div class="stat-card">
+              <div class="stat-value">{{ qualityData.resolutionDistribution.length }}</div>
+              <div class="stat-label">Different Resolutions</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ qualityData.codecDistribution.length }}</div>
+              <div class="stat-label">Different Codecs</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ qualityData.resolutionDistribution[0]?.resolution || 'N/A' }}</div>
+              <div class="stat-label">Most Common Resolution</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ qualityData.codecDistribution[0]?.codec || 'N/A' }}</div>
+              <div class="stat-label">Most Common Codec</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoading && !qualityData" class="no-data">
+        <mat-icon>info</mat-icon>
+        <p>No quality data available for this library</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

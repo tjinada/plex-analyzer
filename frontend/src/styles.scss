@@ -1,0 +1,84 @@
+// Import Angular Material core styles
+@use '@angular/material' as mat;
+
+// Include the common styles for Angular Material
+@include mat.core();
+
+// Import our custom theme
+@import './theme.scss';
+
+// Global styles
+html, body { 
+  height: 100%; 
+  margin: 0;
+  padding: 0;
+}
+
+body { 
+  margin: 0; 
+  font-family: 'Roboto', 'Helvetica Neue', sans-serif; 
+  background-color: #f5f5f5;
+  color: var(--text-primary);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+// Global utility classes
+.full-width { width: 100%; }
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.margin-top { margin-top: 16px; }
+.margin-bottom { margin-bottom: 16px; }
+.margin-left { margin-left: 16px; }
+.margin-right { margin-right: 16px; }
+
+.padding { padding: 16px; }
+.padding-small { padding: 8px; }
+.padding-large { padding: 24px; }
+
+// Flexbox utilities
+.flex { display: flex; }
+.flex-column { flex-direction: column; }
+.flex-center { justify-content: center; align-items: center; }
+.flex-space-between { justify-content: space-between; }
+.flex-space-around { justify-content: space-around; }
+.flex-grow { flex-grow: 1; }
+
+// Grid utilities
+.grid { display: grid; }
+.grid-gap { gap: 16px; }
+.grid-gap-small { gap: 8px; }
+.grid-gap-large { gap: 24px; }
+
+// Responsive utilities
+.mobile-only { display: none; }
+.desktop-only { display: block; }
+
+@media (max-width: 768px) {
+  .mobile-only { display: block; }
+  .desktop-only { display: none; }
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

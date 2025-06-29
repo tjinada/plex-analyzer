@@ -1,0 +1,279 @@
+<div class="setup-container">
+  <mat-card class="setup-card">
+    <mat-card-header>
+      <mat-card-title>Plex Analyzer Setup</mat-card-title>
+      <mat-card-subtitle>Configure all required media server connections (Plex, Tautulli, Radarr, Sonarr)</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <mat-stepper #stepper orientation="vertical" linear="true">
+        <!-- Step 1: Plex Configuration -->
+        <mat-step [stepControl]="plexForm" label="Step 1: Plex Server" state="plex" [completed]="plexConnectionStatus === true" [editable]="true">
+          <form [formGroup]="plexForm">
+            <div class="form-section">
+              <h3>Plex Media Server (Required)</h3>
+              <p>Your Plex server URL and authentication token are required.</p>
+              
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Plex Server URL</mat-label>
+                <input matInput formControlName="url" placeholder="http://localhost:32400">
+                <mat-error *ngIf="plexForm.get('url')?.hasError('required')">
+                  Server URL is required
+                </mat-error>
+                <mat-error *ngIf="plexForm.get('url')?.hasError('pattern')">
+                  Please enter a valid URL (http:// or https://)
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Plex Token</mat-label>
+                <input matInput formControlName="token" type="password" placeholder="Your Plex authentication token">
+                <mat-error *ngIf="plexForm.get('token')?.hasError('required')">
+                  Plex token is required
+                </mat-error>
+              </mat-form-field>
+
+              <div class="help-text">
+                <small>
+                  <strong>How to get your Plex token:</strong><br>
+                  1. Open Plex Web App<br>
+                  2. Go to Settings → Network<br>
+                  3. Show Advanced → Copy the X-Plex-Token value
+                </small>
+              </div>
+            </div>
+
+            <div class="step-actions">
+              <button mat-raised-button color="accent"
+                      (click)="testPlexConnection()" 
+                      [disabled]="plexForm.invalid || isTestingPlex"
+                      class="test-button">
+                <mat-icon *ngIf="!isTestingPlex && plexConnectionStatus === null">link</mat-icon>
+                <mat-icon *ngIf="!isTestingPlex && plexConnectionStatus === true" class="success-icon">check_circle</mat-icon>
+                <mat-icon *ngIf="!isTestingPlex && plexConnectionStatus === false" class="error-icon">error</mat-icon>
+                <mat-spinner *ngIf="isTestingPlex" diameter="20"></mat-spinner>
+                <span *ngIf="!isTestingPlex">Test Connection</span>
+                <span *ngIf="isTestingPlex">Testing...</span>
+              </button>
+              
+              <button mat-raised-button color="primary" 
+                      (click)="saveAndProceedToTautulli()"
+                      [disabled]="plexForm.invalid || plexConnectionStatus !== true">
+                Save & Continue to Tautulli
+              </button>
+              
+              <!-- Debug info -->
+              <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                Debug: Form valid: {{ plexForm.valid }}, Connection status: {{ plexConnectionStatus }}
+              </div>
+            </div>
+            
+            <div class="connection-status" *ngIf="plexConnectionStatus !== null">
+              <mat-icon *ngIf="plexConnectionStatus" class="success-icon">check_circle</mat-icon>
+              <mat-icon *ngIf="!plexConnectionStatus" class="error-icon">error</mat-icon>
+              <span [class.success]="plexConnectionStatus" [class.error]="!plexConnectionStatus">
+                {{ plexConnectionStatus ? 'Connection successful!' : 'Connection failed. Please check your settings.' }}
+              </span>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- Step 2: Tautulli Configuration -->
+        <mat-step [stepControl]="tautulliForm" label="Step 2: Tautulli" state="tautulli" [completed]="tautulliConnectionStatus === true" [editable]="true">
+          <form [formGroup]="tautulliForm">
+            <div class="form-section">
+              <h3>Tautulli (Required)</h3>
+              <p>Tautulli provides enhanced statistics and watch history for your Plex server. This service is required for complete functionality.</p>
+              
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Tautulli URL</mat-label>
+                <input matInput formControlName="url" placeholder="http://localhost:8181">
+                <mat-error *ngIf="tautulliForm.get('url')?.hasError('required')">
+                  Tautulli URL is required
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>API Key</mat-label>
+                <input matInput formControlName="apiKey" type="password" placeholder="Your Tautulli API key">
+                <mat-error *ngIf="tautulliForm.get('apiKey')?.hasError('required')">
+                  Tautulli API key is required
+                </mat-error>
+              </mat-form-field>
+
+              <div class="help-text">
+                <small>
+                  <strong>How to get your Tautulli API key:</strong><br>
+                  1. Open Tautulli Web Interface<br>
+                  2. Go to Settings → Web Interface<br>
+                  3. Copy the API Key value
+                </small>
+              </div>
+            </div>
+
+            <div class="step-actions">
+              <button mat-button (click)="goBackToPlex()">Back to Plex</button>
+              
+              <button mat-raised-button color="accent"
+                      (click)="testTautulliConnection()" 
+                      [disabled]="tautulliForm.invalid || isTestingTautulli"
+                      class="test-button">
+                <mat-icon *ngIf="!isTestingTautulli && tautulliConnectionStatus === null">link</mat-icon>
+                <mat-icon *ngIf="!isTestingTautulli && tautulliConnectionStatus === true" class="success-icon">check_circle</mat-icon>
+                <mat-icon *ngIf="!isTestingTautulli && tautulliConnectionStatus === false" class="error-icon">error</mat-icon>
+                <mat-spinner *ngIf="isTestingTautulli" diameter="20"></mat-spinner>
+                <span *ngIf="!isTestingTautulli">Test Connection</span>
+                <span *ngIf="isTestingTautulli">Testing...</span>
+              </button>
+              
+              <button mat-raised-button color="primary" 
+                      (click)="saveAndProceedToRadarr()"
+                      [disabled]="tautulliForm.invalid || tautulliConnectionStatus !== true">
+                Save & Continue to Radarr
+              </button>
+            </div>
+            
+            <div class="connection-status" *ngIf="tautulliConnectionStatus !== null">
+              <mat-icon *ngIf="tautulliConnectionStatus" class="success-icon">check_circle</mat-icon>
+              <mat-icon *ngIf="!tautulliConnectionStatus" class="error-icon">error</mat-icon>
+              <span [class.success]="tautulliConnectionStatus" [class.error]="!tautulliConnectionStatus">
+                {{ tautulliConnectionStatus ? 'Tautulli connection successful!' : 'Tautulli connection failed. Please check your settings.' }}
+              </span>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- Step 3: Radarr Configuration -->
+        <mat-step [stepControl]="radarrForm" label="Step 3: Radarr" state="radarr" [completed]="radarrConnectionStatus === true" [editable]="true">
+          <form [formGroup]="radarrForm">
+            <div class="form-section">
+              <h3>Radarr (Required)</h3>
+              <p>Radarr manages your movie collection with quality profiles and download management. This service is required for complete functionality.</p>
+              
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Radarr URL</mat-label>
+                <input matInput formControlName="url" placeholder="http://localhost:7878">
+                <mat-error *ngIf="radarrForm.get('url')?.hasError('required')">
+                  Radarr URL is required
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>API Key</mat-label>
+                <input matInput formControlName="apiKey" type="password" placeholder="Your Radarr API key">
+                <mat-error *ngIf="radarrForm.get('apiKey')?.hasError('required')">
+                  Radarr API key is required
+                </mat-error>
+              </mat-form-field>
+
+              <div class="help-text">
+                <small>
+                  <strong>How to get your Radarr API key:</strong><br>
+                  1. Open Radarr Web Interface<br>
+                  2. Go to Settings → General<br>
+                  3. Copy the API Key value
+                </small>
+              </div>
+            </div>
+
+            <div class="step-actions">
+              <button mat-button (click)="goBackToTautulli()">Back to Tautulli</button>
+              
+              <button mat-raised-button color="accent"
+                      (click)="testRadarrConnection()" 
+                      [disabled]="radarrForm.invalid || isTestingRadarr"
+                      class="test-button">
+                <mat-icon *ngIf="!isTestingRadarr && radarrConnectionStatus === null">link</mat-icon>
+                <mat-icon *ngIf="!isTestingRadarr && radarrConnectionStatus === true" class="success-icon">check_circle</mat-icon>
+                <mat-icon *ngIf="!isTestingRadarr && radarrConnectionStatus === false" class="error-icon">error</mat-icon>
+                <mat-spinner *ngIf="isTestingRadarr" diameter="20"></mat-spinner>
+                <span *ngIf="!isTestingRadarr">Test Connection</span>
+                <span *ngIf="isTestingRadarr">Testing...</span>
+              </button>
+              
+              <button mat-raised-button color="primary" 
+                      (click)="saveAndProceedToSonarr()"
+                      [disabled]="radarrForm.invalid || radarrConnectionStatus !== true">
+                Save & Continue to Sonarr
+              </button>
+            </div>
+            
+            <div class="connection-status" *ngIf="radarrConnectionStatus !== null">
+              <mat-icon *ngIf="radarrConnectionStatus" class="success-icon">check_circle</mat-icon>
+              <mat-icon *ngIf="!radarrConnectionStatus" class="error-icon">error</mat-icon>
+              <span [class.success]="radarrConnectionStatus" [class.error]="!radarrConnectionStatus">
+                {{ radarrConnectionStatus ? 'Radarr connection successful!' : 'Radarr connection failed. Please check your settings.' }}
+              </span>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- Step 4: Sonarr Configuration -->
+        <mat-step [stepControl]="sonarrForm" label="Step 4: Sonarr" state="sonarr" [completed]="sonarrConnectionStatus === true" [editable]="true">
+          <form [formGroup]="sonarrForm">
+            <div class="form-section">
+              <h3>Sonarr (Required)</h3>
+              <p>Sonarr manages your TV show collection with quality profiles and download management. This service is required for complete functionality.</p>
+              
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Sonarr URL</mat-label>
+                <input matInput formControlName="url" placeholder="http://localhost:8989">
+                <mat-error *ngIf="sonarrForm.get('url')?.hasError('required')">
+                  Sonarr URL is required
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>API Key</mat-label>
+                <input matInput formControlName="apiKey" type="password" placeholder="Your Sonarr API key">
+                <mat-error *ngIf="sonarrForm.get('apiKey')?.hasError('required')">
+                  Sonarr API key is required
+                </mat-error>
+              </mat-form-field>
+
+              <div class="help-text">
+                <small>
+                  <strong>How to get your Sonarr API key:</strong><br>
+                  1. Open Sonarr Web Interface<br>
+                  2. Go to Settings → General<br>
+                  3. Copy the API Key value
+                </small>
+              </div>
+            </div>
+
+            <div class="step-actions">
+              <button mat-button (click)="goBackToRadarr()">Back to Radarr</button>
+              
+              <button mat-raised-button color="accent"
+                      (click)="testSonarrConnection()" 
+                      [disabled]="sonarrForm.invalid || isTestingSonarr"
+                      class="test-button">
+                <mat-icon *ngIf="!isTestingSonarr && sonarrConnectionStatus === null">link</mat-icon>
+                <mat-icon *ngIf="!isTestingSonarr && sonarrConnectionStatus === true" class="success-icon">check_circle</mat-icon>
+                <mat-icon *ngIf="!isTestingSonarr && sonarrConnectionStatus === false" class="error-icon">error</mat-icon>
+                <mat-spinner *ngIf="isTestingSonarr" diameter="20"></mat-spinner>
+                <span *ngIf="!isTestingSonarr">Test Connection</span>
+                <span *ngIf="isTestingSonarr">Testing...</span>
+              </button>
+              
+              <button mat-raised-button color="primary" 
+                      (click)="saveAndComplete()"
+                      [disabled]="sonarrForm.invalid || sonarrConnectionStatus !== true">
+                Save & Complete Setup
+              </button>
+            </div>
+            
+            <div class="connection-status" *ngIf="sonarrConnectionStatus !== null">
+              <mat-icon *ngIf="sonarrConnectionStatus" class="success-icon">check_circle</mat-icon>
+              <mat-icon *ngIf="!sonarrConnectionStatus" class="error-icon">error</mat-icon>
+              <span [class.success]="sonarrConnectionStatus" [class.error]="!sonarrConnectionStatus">
+                {{ sonarrConnectionStatus ? 'Sonarr connection successful!' : 'Sonarr connection failed. Please check your settings.' }}
+              </span>
+            </div>
+          </form>
+        </mat-step>
+
+      </mat-stepper>
+    </mat-card-content>
+  </mat-card>
+</div>

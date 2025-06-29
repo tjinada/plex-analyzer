@@ -1,0 +1,138 @@
+<div class="dashboard-container">
+
+  <!-- Loading State -->
+  <app-loading 
+    *ngIf="isLoading" 
+    message="Loading dashboard data..."
+    [size]="50"
+    [centered]="true">
+  </app-loading>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!isLoading" class="dashboard-content">
+    <!-- Global Statistics -->
+    <div class="stats-section" *ngIf="globalStats">
+      <h2>Global Statistics</h2>
+      <div class="stats-grid">
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-value">{{ globalStats.totalLibraries }}</div>
+            <div class="stat-label">Libraries</div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-value">{{ globalStats.totalItems | number }}</div>
+            <div class="stat-label">Total Items</div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-value">{{ globalStats.totalSize | bytes }}</div>
+            <div class="stat-label">Total Size</div>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-value">{{ globalStats.averageFileSize | bytes }}</div>
+            <div class="stat-label">Average File Size</div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Libraries Grid -->
+    <div class="libraries-section">
+      <h2>Libraries</h2>
+      
+      <div *ngIf="libraries.length === 0" class="empty-state">
+        <mat-icon>folder_open</mat-icon>
+        <p>No libraries found</p>
+        <p class="empty-hint">Make sure your Plex server is configured and accessible.</p>
+      </div>
+
+      <div *ngIf="libraries.length > 0" class="libraries-grid">
+        <mat-card 
+          *ngFor="let library of libraries" 
+          class="library-card"
+          [routerLink]="['/analyzer', library.id]">
+          
+          <mat-card-header>
+            <mat-icon mat-card-avatar>{{ getLibraryIcon(library.type) }}</mat-icon>
+            <mat-card-title>{{ library.title }}</mat-card-title>
+            <mat-card-subtitle>{{ getLibraryTypeLabel(library.type) }}</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content>
+            <div class="library-stats">
+              <div class="stat-row">
+                <span class="stat-label">Items:</span>
+                <span class="stat-value">{{ library.itemCount | number }}</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Size:</span>
+                <span class="stat-value">{{ library.totalSize | bytes }}</span>
+              </div>
+              <div class="stat-row">
+                <span class="stat-label">Updated:</span>
+                <span class="stat-value">{{ library.updatedAt | date:'short' }}</span>
+              </div>
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions align="end">
+            <button mat-button color="primary">
+              <mat-icon>analytics</mat-icon>
+              Analyze
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Storage Breakdown -->
+    <div class="breakdown-section" *ngIf="globalStats && globalStats.libraryBreakdown.length > 0">
+      <h2>Storage Breakdown</h2>
+      <mat-card class="breakdown-card">
+        <mat-card-content>
+          <div class="breakdown-list">
+            <div 
+              *ngFor="let item of globalStats.libraryBreakdown" 
+              class="breakdown-item">
+              <div class="breakdown-info">
+                <mat-icon>{{ getLibraryIcon(item.type) }}</mat-icon>
+                <div class="breakdown-details">
+                  <div class="breakdown-title">{{ item.title }}</div>
+                  <div class="breakdown-subtitle">{{ item.size | bytes }}</div>
+                </div>
+              </div>
+              <div class="breakdown-percentage">
+                {{ item.percentage }}%
+              </div>
+              <div class="breakdown-bar">
+                <div 
+                  class="breakdown-fill"
+                  [style.width.%]="item.percentage">
+                </div>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Floating refresh button -->
+  <button 
+    mat-fab 
+    color="primary" 
+    class="refresh-fab"
+    (click)="refreshData()" 
+    [disabled]="isRefreshing"
+    *ngIf="!isLoading">
+    <mat-icon>{{ isRefreshing ? 'hourglass_empty' : 'refresh' }}</mat-icon>
+  </button>
+</div>

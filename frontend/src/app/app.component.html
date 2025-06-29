@@ -1,0 +1,38 @@
+<div class="app-container">
+  <!-- Loading indicator -->
+  <mat-progress-bar mode="indeterminate" *ngIf="isLoading"></mat-progress-bar>
+
+  <!-- Navigation for configured app -->
+  <div *ngIf="!isLoading && isConfigured" class="app-layout">
+    <mat-sidenav-container class="sidenav-container">
+      <!-- Navigation sidebar -->
+      <mat-sidenav mode="side" opened class="sidenav">
+        <div class="nav-header">
+          <h2>{{ title }}</h2>
+        </div>
+        
+        <mat-nav-list>
+          <a mat-list-item routerLink="/dashboard" routerLinkActive="active">
+            <mat-icon matListItemIcon>dashboard</mat-icon>
+            <span matListItemTitle>Dashboard</span>
+          </a>
+          
+          <a mat-list-item routerLink="/setup" routerLinkActive="active">
+            <mat-icon matListItemIcon>settings</mat-icon>
+            <span matListItemTitle>Settings</span>
+          </a>
+        </mat-nav-list>
+      </mat-sidenav>
+
+      <!-- Main content -->
+      <mat-sidenav-content class="main-content">
+        <router-outlet></router-outlet>
+      </mat-sidenav-content>
+    </mat-sidenav-container>
+  </div>
+
+  <!-- Full-screen setup for unconfigured app -->
+  <div *ngIf="!isLoading && !isConfigured" class="setup-layout">
+    <router-outlet></router-outlet>
+  </div>
+</div>

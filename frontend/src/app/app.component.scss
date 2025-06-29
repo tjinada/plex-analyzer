@@ -1,0 +1,95 @@
+.app-container {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-layout {
+  height: 100%;
+}
+
+.sidenav-container {
+  height: 100%;
+}
+
+.sidenav {
+  width: 250px;
+  background-color: #fafafa;
+  border-right: 1px solid #e0e0e0;
+  
+  .nav-header {
+    padding: 24px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #1976d2;
+    color: white;
+    
+    h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+  }
+  
+  mat-nav-list {
+    padding-top: 16px;
+    
+    a[mat-list-item] {
+      color: #666;
+      transition: all 0.2s ease;
+      margin: 4px 8px;
+      border-radius: 8px;
+      
+      &:hover {
+        background-color: #f0f0f0;
+        color: #333;
+      }
+      
+      &.active {
+        background-color: #e3f2fd;
+        color: #1976d2;
+        
+        mat-icon {
+          color: #1976d2;
+        }
+      }
+      
+      mat-icon {
+        color: inherit;
+        margin-right: 16px;
+      }
+    }
+  }
+}
+
+.main-content {
+  background-color: #f5f5f5;
+  overflow-y: auto;
+}
+
+.setup-layout {
+  height: 100%;
+  width: 100%;
+}
+
+// Loading bar positioning
+mat-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .sidenav {
+    width: 200px;
+  }
+  
+  .nav-header {
+    padding: 16px 12px;
+    
+    h2 {
+      font-size: 1.1rem;
+    }
+  }
+}

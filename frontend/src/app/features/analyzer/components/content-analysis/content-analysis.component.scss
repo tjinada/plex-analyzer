@@ -1,0 +1,151 @@
+.content-analysis {
+  padding: 16px;
+}
+
+.mat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-actions {
+  margin-left: auto;
+}
+
+.analysis-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.analysis-section {
+  h3 {
+    margin: 0 0 16px 0;
+    font-weight: 500;
+    color: #333;
+  }
+}
+
+.genre-chips {
+  margin-bottom: 16px;
+  
+  mat-chip-set {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  mat-chip {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    font-weight: 500;
+  }
+}
+
+.genre-table,
+.year-table,
+.runtime-table {
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  
+  .mat-header-cell {
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .mat-cell {
+    padding: 8px 16px;
+  }
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  
+  .stat-card {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1976d2;
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+.year-range-stats {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  
+  .year-range {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    
+    .range-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .range-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+  }
+}
+
+.no-data {
+  text-align: center;
+  padding: 48px 16px;
+  color: #666;
+  
+  mat-icon {
+    font-size: 48px;
+    height: 48px;
+    width: 48px;
+    margin-bottom: 16px;
+    color: #ccc;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .year-range-stats {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .genre-chips mat-chip-set {
+    justify-content: center;
+  }
+}

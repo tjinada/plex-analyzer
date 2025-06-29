@@ -1,0 +1,147 @@
+<div class="content-analysis">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Content Analysis</mat-card-title>
+      <mat-card-subtitle>Genre, year, and runtime distribution</mat-card-subtitle>
+      <div class="header-actions">
+        <button mat-icon-button (click)="refreshAnalysis()" [disabled]="isLoading">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </mat-card-header>
+
+    <mat-card-content>
+      <app-loading *ngIf="isLoading"></app-loading>
+      
+      <div *ngIf="!isLoading && contentData" class="analysis-content">
+        <!-- Top Genres -->
+        <div class="analysis-section">
+          <h3>Top Genres</h3>
+          <div class="genre-chips">
+            <mat-chip-set>
+              <mat-chip *ngFor="let genre of getTopGenres()" [highlighted]="true">
+                {{ genre.genre }} ({{ genre.count }})
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+        </div>
+
+        <!-- Genre Distribution Table -->
+        <div class="analysis-section">
+          <h3>Genre Distribution</h3>
+          <mat-table [dataSource]="contentData.genreDistribution" class="genre-table">
+            <ng-container matColumnDef="genre">
+              <mat-header-cell *matHeaderCellDef>Genre</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.genre }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="count">
+              <mat-header-cell *matHeaderCellDef>Count</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.count }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="percentage">
+              <mat-header-cell *matHeaderCellDef>Percentage</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ formatPercentage(element.percentage) }}</mat-cell>
+            </ng-container>
+
+            <mat-header-row *matHeaderRowDef="genreColumns"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: genreColumns;"></mat-row>
+          </mat-table>
+        </div>
+
+        <!-- Year Distribution -->
+        <div class="analysis-section">
+          <h3>Release Year Distribution</h3>
+          <mat-table [dataSource]="contentData.yearDistribution" class="year-table">
+            <ng-container matColumnDef="year">
+              <mat-header-cell *matHeaderCellDef>Year</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.year }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="count">
+              <mat-header-cell *matHeaderCellDef>Count</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.count }}</mat-cell>
+            </ng-container>
+
+            <mat-header-row *matHeaderRowDef="yearColumns"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: yearColumns;"></mat-row>
+          </mat-table>
+        </div>
+
+        <!-- Runtime Distribution -->
+        <div class="analysis-section">
+          <h3>Runtime Distribution</h3>
+          <mat-table [dataSource]="contentData.runtimeDistribution" class="runtime-table">
+            <ng-container matColumnDef="range">
+              <mat-header-cell *matHeaderCellDef>Runtime Range</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.range }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="count">
+              <mat-header-cell *matHeaderCellDef>Count</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ element.count }}</mat-cell>
+            </ng-container>
+
+            <ng-container matColumnDef="averageRuntime">
+              <mat-header-cell *matHeaderCellDef>Average Runtime</mat-header-cell>
+              <mat-cell *matCellDef="let element">{{ formatRuntime(element.averageRuntime) }}</mat-cell>
+            </ng-container>
+
+            <mat-header-row *matHeaderRowDef="runtimeColumns"></mat-header-row>
+            <mat-row *matRowDef="let row; columns: runtimeColumns;"></mat-row>
+          </mat-table>
+        </div>
+
+        <!-- Content Summary -->
+        <div class="analysis-section">
+          <h3>Content Summary</h3>
+          <div class="summary-stats">
+            <div class="stat-card">
+              <div class="stat-value">{{ contentData.genreDistribution.length }}</div>
+              <div class="stat-label">Total Genres</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ contentData.genreDistribution[0]?.genre || 'N/A' }}</div>
+              <div class="stat-label">Most Popular Genre</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ contentData.yearDistribution[contentData.yearDistribution.length - 1]?.year || 'N/A' }}</div>
+              <div class="stat-label">Latest Release Year</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ contentData.runtimeDistribution[0]?.range || 'N/A' }}</div>
+              <div class="stat-label">Most Common Runtime</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Year Range Summary -->
+        <div class="analysis-section" *ngIf="contentData.yearDistribution.length > 0">
+          <h3>Year Range Overview</h3>
+          <div class="year-range-stats">
+            <div class="year-range">
+              <span class="range-label">Oldest:</span>
+              <span class="range-value">{{ contentData.yearDistribution[0]?.year }}</span>
+            </div>
+            <div class="year-range">
+              <span class="range-label">Newest:</span>
+              <span class="range-value">{{ contentData.yearDistribution[contentData.yearDistribution.length - 1]?.year }}</span>
+            </div>
+            <div class="year-range">
+              <span class="range-label">Span:</span>
+              <span class="range-value">
+                {{ (contentData.yearDistribution[contentData.yearDistribution.length - 1]?.year || 0) - (contentData.yearDistribution[0]?.year || 0) }} years
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="!isLoading && !contentData" class="no-data">
+        <mat-icon>info</mat-icon>
+        <p>No content data available for this library</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
