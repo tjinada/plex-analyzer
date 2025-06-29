@@ -21,6 +21,8 @@ export interface SizeAnalysis {
   sizeDistribution: SizeDistribution[];
   averageFileSize: number;
   totalSize: number;
+  episodeBreakdown?: MediaFile[]; // For TV shows: original episode-level data
+  hasEpisodes?: boolean; // Flag to indicate if this library has episodes
 }
 
 // Paginated response interfaces
@@ -59,7 +61,9 @@ export interface MediaFile {
   resolution: string;
   codec: string;
   year?: number;
-  type: 'movie' | 'episode';
+  type: 'movie' | 'episode' | 'show';
+  showName?: string;  // For episodes, the parent show name
+  episodeCount?: number;  // For shows, the number of episodes
 }
 
 export interface SizeDistribution {
@@ -631,28 +635,48 @@ export class AnalyzerService {
         filesWithoutSize.slice(0, 3).map(f => ({ title: f.title, type: f.type })));
     }
 
+    // For TV show libraries, aggregate episodes by show for better user experience
+    const hasEpisodes = mediaFiles.some(file => file.type === 'episode');
+    let processedFiles = mediaFiles;
+    
+    if (hasEpisodes) {
+      console.log(`[AnalyzerService] TV show library detected, aggregating episodes by show`);
+      processedFiles = this.aggregateEpisodesByShow(mediaFiles);
+      console.log(`[AnalyzerService] Aggregated ${mediaFiles.length} episodes into ${processedFiles.length} shows/movies`);
+    }
+
     // Sort by file size (largest first) - pagination already applied
-    const largestFiles = mediaFiles
+    const largestFiles = processedFiles
       .sort((a, b) => b.fileSize - a.fileSize);
 
-    // Calculate size distribution
-    const sizeDistribution = this.calculateSizeDistribution(mediaFiles);
+    // Calculate size distribution using processed files
+    const sizeDistribution = this.calculateSizeDistribution(processedFiles);
     
-    // Calculate average file size
-    const averageFileSize = mediaFiles.length > 0 ? totalSize / mediaFiles.length : 0;
+    // Calculate average file size using processed files
+    const averageFileSize = processedFiles.length > 0 ? totalSize / processedFiles.length : 0;
 
     console.log(`[AnalyzerService] Size analysis summary:`);
-    console.log(`  - Total files: ${mediaFiles.length}`);
+    console.log(`  - Original files: ${mediaFiles.length}`);
+    console.log(`  - Processed files: ${processedFiles.length}`);
     console.log(`  - Total size: ${totalSize} bytes`);
     console.log(`  - Average file size: ${averageFileSize} bytes`);
     console.log(`  - Size distribution: ${sizeDistribution.length} ranges`);
 
-    return {
+    const result: SizeAnalysis = {
       largestFiles,
       sizeDistribution,
       averageFileSize,
-      totalSize // Add total size to the return value
+      totalSize,
+      hasEpisodes
     };
+
+    // For TV show libraries, include episode breakdown
+    if (hasEpisodes) {
+      result.episodeBreakdown = mediaFiles
+        .sort((a, b) => b.fileSize - a.fileSize);
+    }
+
+    return result;
   }
 
   /**
@@ -831,6 +855,75 @@ export class AnalyzerService {
     if (runtime < 120) return '90-120 min';
     if (runtime < 180) return '120-180 min';
     return '> 180 min';
+  }
+
+  /**
+   * Aggregate TV show episodes by show for better user experience
+   */
+  private aggregateEpisodesByShow(mediaFiles: MediaFile[]): MediaFile[] {
+    const episodes = mediaFiles.filter(file => file.type === 'episode');
+    const movies = mediaFiles.filter(file => file.type === 'movie');
+    
+    if (episodes.length === 0) {
+      // If no episodes, return original data (movies only)
+      return mediaFiles;
+    }
+    
+    // Group episodes by show name
+    const showGroups = episodes.reduce((groups, episode) => {
+      // Extract show name from episode title format: "Show Name - Episode Title"
+      const showName = episode.title.split(' - ')[0];
+      if (!groups[showName]) {
+        groups[showName] = [];
+      }
+      groups[showName].push(episode);
+      return groups;
+    }, {} as Record<string, MediaFile[]>);
+    
+    // Create aggregated show entries
+    const aggregatedShows: MediaFile[] = Object.entries(showGroups).map(([showName, showEpisodes]) => {
+      // Calculate total size for the show
+      const totalSize = showEpisodes.reduce((sum, episode) => sum + episode.fileSize, 0);
+      
+      // Find the most common resolution and codec (could be enhanced)
+      const resolutions = showEpisodes.map(ep => ep.resolution);
+      const codecs = showEpisodes.map(ep => ep.codec);
+      const mostCommonResolution = this.getMostCommon(resolutions);
+      const mostCommonCodec = this.getMostCommon(codecs);
+      
+      // Use the show's year (from first episode)
+      const year = showEpisodes[0]?.year;
+      
+      return {
+        id: `show-${showName.replace(/[^a-zA-Z0-9]/g, '-')}`, // Generate show ID
+        title: showName,
+        filePath: `${showEpisodes.length} episodes`, // Show episode count instead of file path
+        fileSize: totalSize,
+        resolution: mostCommonResolution,
+        codec: mostCommonCodec,
+        year: year,
+        type: 'show' as const,
+        showName: showName,
+        episodeCount: showEpisodes.length
+      };
+    });
+    
+    // Return aggregated shows combined with movies
+    return [...aggregatedShows, ...movies];
+  }
+  
+  /**
+   * Helper function to find the most common item in an array
+   */
+  private getMostCommon<T>(items: T[]): T {
+    if (items.length === 0) return 'Unknown' as T;
+    
+    const counts = items.reduce((acc, item) => {
+      acc[item as string] = (acc[item as string] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return Object.entries(counts).reduce((a, b) => counts[a[0]] > counts[b[0]] ? a : b)[0] as T;
   }
 
   /**

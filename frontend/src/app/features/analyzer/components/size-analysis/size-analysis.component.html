@@ -3,6 +3,16 @@
   <div class="analysis-header">
     <h2>Size Analysis</h2>
     <div class="header-actions">
+      <!-- View Toggle for TV Shows -->
+      <button *ngIf="hasEpisodes" 
+              mat-button 
+              (click)="toggleView()" 
+              [disabled]="isLoading" 
+              class="view-toggle-btn">
+        <mat-icon>{{ showEpisodeView ? 'tv' : 'list' }}</mat-icon>
+        {{ toggleButtonLabel }}
+      </button>
+      
       <button mat-icon-button (click)="refresh()" [disabled]="isLoading" matTooltip="Refresh">
         <mat-icon>refresh</mat-icon>
       </button>
@@ -32,16 +42,16 @@
     <div class="summary-grid">
       <mat-card class="summary-card">
         <mat-card-header>
-          <mat-card-title>Total Files</mat-card-title>
+          <mat-card-title>Total Items</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <div class="metric-value">{{ sizeAnalysis.largestFiles.length }}</div>
+          <div class="metric-value">{{ currentDisplayData.length }}</div>
         </mat-card-content>
       </mat-card>
 
       <mat-card class="summary-card">
         <mat-card-header>
-          <mat-card-title>Average File Size</mat-card-title>
+          <mat-card-title>Average Size</mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <div class="metric-value">{{ formatFileSize(sizeAnalysis.averageFileSize) }}</div>
@@ -58,7 +68,7 @@
         <div class="distribution-grid">
           <div *ngFor="let dist of sizeAnalysis.sizeDistribution" class="distribution-item">
             <div class="distribution-label">{{ dist.range }}</div>
-            <div class="distribution-count">{{ dist.count }} files</div>
+            <div class="distribution-count">{{ dist.count }} items</div>
             <div class="distribution-size">{{ formatFileSize(dist.totalSize) }}</div>
             <div class="distribution-percentage">{{ formatPercentage(dist.percentage) }}</div>
           </div>
@@ -69,12 +79,12 @@
     <!-- Largest Files Table -->
     <mat-card class="table-card">
       <mat-card-header>
-        <mat-card-title>Largest Files</mat-card-title>
-        <mat-card-subtitle>Top {{ sizeAnalysis.largestFiles.length }} largest files in library</mat-card-subtitle>
+        <mat-card-title>Largest Items - {{ viewLabel }}</mat-card-title>
+        <mat-card-subtitle>Top {{ currentDisplayData.length }} largest items in library</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <div class="table-container">
-          <table mat-table [dataSource]="sizeAnalysis.largestFiles" matSort class="files-table">
+          <table mat-table [dataSource]="currentDisplayData" matSort class="files-table">
             
             <!-- Title Column -->
             <ng-container matColumnDef="title">
@@ -113,9 +123,14 @@
 
             <!-- File Path Column -->
             <ng-container matColumnDef="filePath">
-              <th mat-header-cell *matHeaderCellDef>Path</th>
+              <th mat-header-cell *matHeaderCellDef>Details</th>
               <td mat-cell *matCellDef="let file" class="path-cell">
-                <span class="file-path" [title]="file.filePath">{{ file.filePath }}</span>
+                <span class="file-path" [title]="file.filePath">
+                  <ng-container *ngIf="file.type === 'show'; else pathTemplate">
+                    <span class="episode-count">{{ file.episodeCount }} episodes</span>
+                  </ng-container>
+                  <ng-template #pathTemplate>{{ file.filePath }}</ng-template>
+                </span>
               </td>
             </ng-container>
 

@@ -20,6 +20,8 @@ export interface SizeAnalysis {
   sizeDistribution: SizeDistribution[];
   averageFileSize: number;
   totalSize: number;
+  episodeBreakdown?: MediaFile[]; // For TV shows: original episode-level data
+  hasEpisodes?: boolean; // Flag to indicate if this library has episodes
 }
 
 export interface QualityAnalysis {
@@ -42,7 +44,9 @@ export interface MediaFile {
   resolution: string;
   codec: string;
   year?: number;
-  type: 'movie' | 'episode';
+  type: 'movie' | 'episode' | 'show';
+  showName?: string;  // For episodes, the parent show name
+  episodeCount?: number;  // For shows, the number of episodes
 }
 
 export interface SizeDistribution {

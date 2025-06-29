@@ -10,17 +10,6 @@
         <p>Comprehensive analysis of your media library</p>
       </div>
       
-      <!-- Common Limit Selector -->
-      <div class="header-controls" *ngIf="libraryId">
-        <mat-form-field appearance="outline" class="limit-selector">
-          <mat-label>Items to Analyze</mat-label>
-          <mat-select [(ngModel)]="selectedLimit" (selectionChange)="onLimitChange()">
-            <mat-option *ngFor="let option of limitOptions" [value]="option.value">
-              {{ option.label }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-      </div>
     </div>
   </div>
 
@@ -35,8 +24,7 @@
       <mat-tab label="Size Analysis">
         <ng-template matTabContent>
           <app-size-analysis 
-            [libraryId]="libraryId" 
-            [limit]="selectedLimit"
+            [libraryId]="libraryId"
             (loadingStateChange)="onSizeAnalysisLoadingChange($event)"></app-size-analysis>
         </ng-template>
       </mat-tab>
@@ -44,14 +32,14 @@
       <!-- Quality Analysis Tab -->
       <mat-tab label="Quality Analysis">
         <ng-template matTabContent>
-          <app-quality-analysis [libraryId]="libraryId" [limit]="selectedLimit"></app-quality-analysis>
+          <app-quality-analysis [libraryId]="libraryId"></app-quality-analysis>
         </ng-template>
       </mat-tab>
 
       <!-- Content Analysis Tab -->
       <mat-tab label="Content Analysis">
         <ng-template matTabContent>
-          <app-content-analysis [libraryId]="libraryId" [limit]="selectedLimit"></app-content-analysis>
+          <app-content-analysis [libraryId]="libraryId"></app-content-analysis>
         </ng-template>
       </mat-tab>
 

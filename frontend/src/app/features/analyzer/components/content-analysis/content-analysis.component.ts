@@ -59,7 +59,6 @@ export interface RuntimeData {
 })
 export class ContentAnalysisComponent implements OnInit, OnChanges {
   @Input() libraryId!: string;
-  @Input() limit: number = 50;
   
   contentData: ContentAnalysis | null = null;
   isLoading = true;
@@ -80,16 +79,14 @@ export class ContentAnalysisComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['limit'] && !changes['limit'].firstChange) {
-      this.loadContentAnalysis();
-    }
+    // No limit changes to handle anymore
   }
 
   private async loadContentAnalysis(): Promise<void> {
     this.isLoading = true;
     
     try {
-      const response = await this.analyzerService.getContentAnalysis(this.libraryId, this.limit).toPromise();
+      const response = await this.analyzerService.getContentAnalysis(this.libraryId, -1).toPromise();
       this.contentData = response?.data || null;
     } catch (error) {
       console.error('Failed to load content analysis:', error);

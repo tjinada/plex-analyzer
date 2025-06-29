@@ -14,7 +14,6 @@ import { QualityAnalysisComponent } from '../quality-analysis/quality-analysis.c
 import { ContentAnalysisComponent } from '../content-analysis/content-analysis.component';
 import { LibraryService } from '../../../../core/services/library.service';
 import { Library } from '../../../../models';
-import { AnalysisCacheService } from '../../../../core/services/analysis-cache.service';
 import { TabLoadingState } from '../../../../models/pagination.model';
 
 @Component({
@@ -43,16 +42,6 @@ export class AnalyzerPageComponent implements OnInit {
   selectedTabIndex = 0;
   isLoadingLibrary = true;
 
-  // Analysis configuration
-  selectedLimit: number = 50;
-  limitOptions = [
-    { value: 10, label: '10 Items' },
-    { value: 25, label: '25 Items' },
-    { value: 50, label: '50 Items' },
-    { value: 100, label: '100 Items' },
-    { value: 200, label: '200 Items' },
-    { value: -1, label: 'All Items' }
-  ];
 
   // Tab loading states (lazy loading)
   tabStates: { [key: string]: TabLoadingState } = {
@@ -67,8 +56,7 @@ export class AnalyzerPageComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private libraryService: LibraryService,
-    private cacheService: AnalysisCacheService
+    private libraryService: LibraryService
   ) {}
 
   ngOnInit(): void {
@@ -164,27 +152,6 @@ export class AnalyzerPageComponent implements OnInit {
     return 'Library Analysis';
   }
 
-  /**
-   * Handle limit change - clear cache and reload current tab
-   */
-  onLimitChange(): void {
-    console.log(`[AnalyzerPage] Limit changed to: ${this.selectedLimit}`);
-    
-    // Clear cache for current library since limit changed
-    if (this.libraryId) {
-      this.cacheService.clearLibrary(this.libraryId);
-    }
-    
-    // Mark all tabs as not loaded to force reload with new limit
-    Object.keys(this.tabStates).forEach(tab => {
-      this.tabStates[tab].isLoaded = false;
-    });
-    
-    // Reload current tab
-    const tabNames = ['size', 'quality', 'content'];
-    const currentTab = tabNames[this.selectedTabIndex];
-    this.loadTabDataIfNeeded(currentTab);
-  }
 
   /**
    * Load tab data if needed (lazy loading implementation)
@@ -194,14 +161,6 @@ export class AnalyzerPageComponent implements OnInit {
     
     // Don't load if already loaded, loading, or library not ready
     if (tabState.isLoaded || tabState.isLoading || !this.libraryId) {
-      return;
-    }
-
-    // Check if data is cached
-    const isCached = this.cacheService.has(this.libraryId, tabName, this.selectedLimit);
-    if (isCached) {
-      console.log(`[AnalyzerPage] ${tabName} analysis is cached for library ${this.libraryId}`);
-      tabState.isLoaded = true;
       return;
     }
 

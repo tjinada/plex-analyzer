@@ -32,13 +32,16 @@ import { PaginatedResponse, PaginationMeta } from '../../../../models/pagination
 })
 export class SizeAnalysisComponent implements OnInit, OnChanges {
   @Input() libraryId!: string;
-  @Input() limit: number = 25;
   @Output() loadingStateChange = new EventEmitter<{ isLoading: boolean; hasError: boolean; errorMessage?: string }>();
 
   sizeAnalysis: SizeAnalysis | null = null;
   isLoading = false;
   error: string | null = null;
   pagination: PaginationMeta | null = null;
+
+  // Dual view for TV shows
+  showEpisodeView = false; // Toggle between show view and episode view
+  currentDisplayData: MediaFile[] = []; // Current data to display based on view
 
   // Table configuration
   displayedColumns: string[] = ['title', 'fileSize', 'resolution', 'codec', 'filePath'];
@@ -53,9 +56,6 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
     if (changes['libraryId'] && !changes['libraryId'].firstChange) {
       this.loadSizeAnalysis();
     }
-    if (changes['limit'] && !changes['limit'].firstChange) {
-      this.loadSizeAnalysis();
-    }
   }
 
   private loadSizeAnalysis(): void {
@@ -65,10 +65,11 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
     this.error = null;
     this.loadingStateChange.emit({ isLoading: true, hasError: false });
 
-    this.analyzerService.getSizeAnalysis(this.libraryId, this.limit).subscribe({
+    this.analyzerService.getSizeAnalysis(this.libraryId, -1).subscribe({
       next: (response) => {
         this.sizeAnalysis = response.data;
         this.pagination = response.pagination;
+        this.updateDisplayData();
         this.isLoading = false;
         this.loadingStateChange.emit({ isLoading: false, hasError: false });
       },
@@ -106,6 +107,51 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
   }
 
   /**
+   * Update display data based on current view
+   */
+  private updateDisplayData(): void {
+    if (!this.sizeAnalysis) {
+      this.currentDisplayData = [];
+      return;
+    }
+
+    if (this.showEpisodeView && this.sizeAnalysis.episodeBreakdown) {
+      this.currentDisplayData = this.sizeAnalysis.episodeBreakdown;
+    } else {
+      this.currentDisplayData = this.sizeAnalysis.largestFiles;
+    }
+  }
+
+  /**
+   * Toggle between show and episode view
+   */
+  toggleView(): void {
+    this.showEpisodeView = !this.showEpisodeView;
+    this.updateDisplayData();
+  }
+
+  /**
+   * Check if TV show library has episodes
+   */
+  get hasEpisodes(): boolean {
+    return this.sizeAnalysis?.hasEpisodes || false;
+  }
+
+  /**
+   * Get current view label
+   */
+  get viewLabel(): string {
+    return this.showEpisodeView ? 'Episode View' : 'Show View';
+  }
+
+  /**
+   * Get toggle button label
+   */
+  get toggleButtonLabel(): string {
+    return this.showEpisodeView ? 'Show by TV Shows' : 'Show by Episodes';
+  }
+
+  /**
    * Refresh the analysis data
    */
   refresh(): void {
@@ -118,7 +164,7 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
   exportData(): void {
     if (!this.sizeAnalysis) return;
 
-    const csvData = this.convertToCSV(this.sizeAnalysis.largestFiles);
+    const csvData = this.convertToCSV(this.currentDisplayData);
     const blob = new Blob([csvData], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
