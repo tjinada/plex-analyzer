@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
@@ -7,6 +7,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { FormsModule } from '@angular/forms';
 
 import { AnalyzerService } from '../../../../core/services/analyzer.service';
 import { LoadingComponent } from '../../../../shared';
@@ -46,13 +49,17 @@ export interface RuntimeData {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatChipsModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    FormsModule,
     LoadingComponent
   ],
   templateUrl: './content-analysis.component.html',
   styleUrl: './content-analysis.component.scss'
 })
-export class ContentAnalysisComponent implements OnInit {
+export class ContentAnalysisComponent implements OnInit, OnChanges {
   @Input() libraryId!: string;
+  @Input() limit: number = 50;
   
   contentData: ContentAnalysis | null = null;
   isLoading = true;
@@ -72,11 +79,17 @@ export class ContentAnalysisComponent implements OnInit {
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['limit'] && !changes['limit'].firstChange) {
+      this.loadContentAnalysis();
+    }
+  }
+
   private async loadContentAnalysis(): Promise<void> {
     this.isLoading = true;
     
     try {
-      const result = await this.analyzerService.getContentAnalysis(this.libraryId).toPromise();
+      const result = await this.analyzerService.getContentAnalysis(this.libraryId, this.limit).toPromise();
       this.contentData = result || null;
     } catch (error) {
       console.error('Failed to load content analysis:', error);

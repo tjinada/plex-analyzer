@@ -6,6 +6,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSortModule } from '@angular/material/sort';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { FormsModule } from '@angular/forms';
 import { AnalyzerService, SizeAnalysis, MediaFile } from '../../../../core/services/analyzer.service';
 
 @Component({
@@ -18,13 +21,17 @@ import { AnalyzerService, SizeAnalysis, MediaFile } from '../../../../core/servi
     MatProgressSpinnerModule,
     MatButtonModule,
     MatIconModule,
-    MatSortModule
+    MatSortModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    FormsModule
   ],
   templateUrl: './size-analysis.component.html',
   styleUrl: './size-analysis.component.scss'
 })
 export class SizeAnalysisComponent implements OnInit, OnChanges {
   @Input() libraryId!: string;
+  @Input() limit: number = 50;
 
   sizeAnalysis: SizeAnalysis | null = null;
   isLoading = false;
@@ -43,6 +50,9 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
     if (changes['libraryId'] && !changes['libraryId'].firstChange) {
       this.loadSizeAnalysis();
     }
+    if (changes['limit'] && !changes['limit'].firstChange) {
+      this.loadSizeAnalysis();
+    }
   }
 
   private loadSizeAnalysis(): void {
@@ -51,7 +61,7 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
     this.isLoading = true;
     this.error = null;
 
-    this.analyzerService.getSizeAnalysis(this.libraryId).subscribe({
+    this.analyzerService.getSizeAnalysis(this.libraryId, this.limit).subscribe({
       next: (analysis) => {
         this.sizeAnalysis = analysis;
         this.isLoading = false;

@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
@@ -6,6 +6,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { FormsModule } from '@angular/forms';
 
 import { AnalyzerService } from '../../../../core/services/analyzer.service';
 import { LoadingComponent } from '../../../../shared';
@@ -46,13 +49,17 @@ export interface CodecData {
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    FormsModule,
     LoadingComponent
   ],
   templateUrl: './quality-analysis.component.html',
   styleUrl: './quality-analysis.component.scss'
 })
-export class QualityAnalysisComponent implements OnInit {
+export class QualityAnalysisComponent implements OnInit, OnChanges {
   @Input() libraryId!: string;
+  @Input() limit: number = 50;
   
   qualityData: QualityAnalysis | null = null;
   isLoading = true;
@@ -71,11 +78,17 @@ export class QualityAnalysisComponent implements OnInit {
     }
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['limit'] && !changes['limit'].firstChange) {
+      this.loadQualityAnalysis();
+    }
+  }
+
   private async loadQualityAnalysis(): Promise<void> {
     this.isLoading = true;
     
     try {
-      const result = await this.analyzerService.getQualityAnalysis(this.libraryId).toPromise();
+      const result = await this.analyzerService.getQualityAnalysis(this.libraryId, this.limit).toPromise();
       this.qualityData = result || null;
     } catch (error) {
       console.error('Failed to load quality analysis:', error);
