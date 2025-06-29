@@ -19,6 +19,7 @@ export interface SizeAnalysis {
   largestFiles: MediaFile[];
   sizeDistribution: SizeDistribution[];
   averageFileSize: number;
+  totalSize: number;
 }
 
 export interface QualityAnalysis {
@@ -128,7 +129,7 @@ export class AnalyzerService {
       const analysis: LibraryAnalysis = {
         libraryId,
         libraryName: library.title,
-        totalSize: sizeAnalysis.largestFiles.reduce((sum, file) => sum + file.fileSize, 0),
+        totalSize: sizeAnalysis.totalSize,
         totalItems: items.length,
         sizeAnalysis,
         qualityAnalysis,
@@ -292,8 +293,8 @@ export class AnalyzerService {
         totalSize,
         totalItems,
         averageFileSize: totalItems > 0 ? totalSize / totalItems : 0,
-        libraryBreakdown: libraryBreakdown.sort((a, b) => b.size - a.size),
-        libraryCount: libraries.length
+        totalLibraries: libraries.length,
+        libraryBreakdown: libraryBreakdown.sort((a, b) => b.size - a.size)
       };
 
       cache.set(cacheKey, globalStats, this.CACHE_TTL);
@@ -337,10 +338,24 @@ export class AnalyzerService {
    */
   private async generateSizeAnalysis(items: any[]): Promise<SizeAnalysis> {
     console.log(`[AnalyzerService] Generating size analysis for ${items.length} items`);
+    
+    // For size analysis, we need episode-level data for TV shows
+    // Check if this is a TV show library by examining the first item
+    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    let analysisItems = items;
+    
+    if (isShowLibrary) {
+      console.log(`[AnalyzerService] TV show library detected, fetching episodes for size analysis`);
+      // Get the libraryId from the first item
+      const libraryId = items[0].libraryId;
+      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for size analysis`);
+    }
+    
     const mediaFiles: MediaFile[] = [];
     
     // Extract media file information
-    for (const item of items) {
+    for (const item of analysisItems) {
       console.log(`[AnalyzerService] Processing item: ${item.title} (type: ${item.type})`);
       console.log(`[AnalyzerService] Item structure:`, {
         hasMedia: !!item.Media,
@@ -385,6 +400,22 @@ export class AnalyzerService {
     }
     
     console.log(`[AnalyzerService] Total media files extracted: ${mediaFiles.length}`);
+    
+    // Calculate statistics for debugging
+    const filesWithSize = mediaFiles.filter(f => f.fileSize > 0);
+    const filesWithoutSize = mediaFiles.filter(f => f.fileSize === 0);
+    const totalSize = mediaFiles.reduce((sum, file) => sum + file.fileSize, 0);
+    
+    console.log(`[AnalyzerService] Size analysis debug info:`);
+    console.log(`  - Total files: ${mediaFiles.length}`);
+    console.log(`  - Files with size data: ${filesWithSize.length}`);
+    console.log(`  - Files without size data: ${filesWithoutSize.length}`);
+    console.log(`  - Total size: ${totalSize} bytes (${(totalSize / (1024*1024*1024)).toFixed(2)} GB)`);
+    
+    if (filesWithoutSize.length > 0) {
+      console.log(`[AnalyzerService] Sample files without size data:`, 
+        filesWithoutSize.slice(0, 3).map(f => ({ title: f.title, type: f.type })));
+    }
 
     // Sort by file size (largest first)
     const largestFiles = mediaFiles
@@ -395,7 +426,6 @@ export class AnalyzerService {
     const sizeDistribution = this.calculateSizeDistribution(mediaFiles);
     
     // Calculate average file size
-    const totalSize = mediaFiles.reduce((sum, file) => sum + file.fileSize, 0);
     const averageFileSize = mediaFiles.length > 0 ? totalSize / mediaFiles.length : 0;
 
     console.log(`[AnalyzerService] Size analysis summary:`);
@@ -407,7 +437,8 @@ export class AnalyzerService {
     return {
       largestFiles,
       sizeDistribution,
-      averageFileSize
+      averageFileSize,
+      totalSize // Add total size to the return value
     };
   }
 
