@@ -142,8 +142,23 @@ export class AnalyzerService {
       
       if (isShowLibrary) {
         console.log(`[AnalyzerService] TV show library detected, fetching episodes for size analysis`);
-        sizeAnalysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
-        console.log(`[AnalyzerService] Retrieved ${sizeAnalysisItems.length} episodes for size analysis`);
+        
+        // Cache episode data separately since it's expensive to fetch
+        const episodeCacheKey = `${this.CACHE_PREFIX}episodes:${libraryId}`;
+        const cachedEpisodes = cache.get<any[]>(episodeCacheKey);
+        
+        if (cachedEpisodes) {
+          console.log(`[AnalyzerService] Using cached episodes for library ${libraryId} (${cachedEpisodes.length} episodes)`);
+          sizeAnalysisItems = cachedEpisodes;
+        } else {
+          console.log(`[AnalyzerService] Fetching episodes from Plex for library ${libraryId}`);
+          sizeAnalysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+          console.log(`[AnalyzerService] Retrieved ${sizeAnalysisItems.length} episodes for size analysis`);
+          
+          // Cache episodes with same TTL as other data
+          cache.set(episodeCacheKey, sizeAnalysisItems, this.CACHE_TTL);
+          console.log(`[AnalyzerService] Cached episodes for library ${libraryId}`);
+        }
       }
 
       // Generate all analyses
@@ -201,8 +216,23 @@ export class AnalyzerService {
     
     if (isShowLibrary) {
       console.log(`[AnalyzerService] TV show library detected, fetching episodes for size analysis`);
-      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
-      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for size analysis`);
+      
+      // Cache episode data separately since it's expensive to fetch
+      const episodeCacheKey = `${this.CACHE_PREFIX}episodes:${libraryId}`;
+      const cachedEpisodes = cache.get<any[]>(episodeCacheKey);
+      
+      if (cachedEpisodes) {
+        console.log(`[AnalyzerService] Using cached episodes for library ${libraryId} (${cachedEpisodes.length} episodes)`);
+        analysisItems = cachedEpisodes;
+      } else {
+        console.log(`[AnalyzerService] Fetching episodes from Plex for library ${libraryId}`);
+        analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+        console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for size analysis`);
+        
+        // Cache episodes with same TTL as other data
+        cache.set(episodeCacheKey, analysisItems, this.CACHE_TTL);
+        console.log(`[AnalyzerService] Cached episodes for library ${libraryId}`);
+      }
     }
 
     // Apply pagination to the analysis items (KISS principle)
@@ -249,8 +279,23 @@ export class AnalyzerService {
     
     if (isShowLibrary) {
       console.log(`[AnalyzerService] TV show library detected for quality analysis, fetching episodes`);
-      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
-      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for quality analysis`);
+      
+      // Cache episode data separately since it's expensive to fetch
+      const episodeCacheKey = `${this.CACHE_PREFIX}episodes:${libraryId}`;
+      const cachedEpisodes = cache.get<any[]>(episodeCacheKey);
+      
+      if (cachedEpisodes) {
+        console.log(`[AnalyzerService] Using cached episodes for library ${libraryId} (${cachedEpisodes.length} episodes)`);
+        analysisItems = cachedEpisodes;
+      } else {
+        console.log(`[AnalyzerService] Fetching episodes from Plex for library ${libraryId}`);
+        analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+        console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for quality analysis`);
+        
+        // Cache episodes with same TTL as other data
+        cache.set(episodeCacheKey, analysisItems, this.CACHE_TTL);
+        console.log(`[AnalyzerService] Cached episodes for library ${libraryId}`);
+      }
     }
 
     // Apply pagination to the analysis items
@@ -297,8 +342,23 @@ export class AnalyzerService {
     
     if (isShowLibrary) {
       console.log(`[AnalyzerService] TV show library detected for content analysis, fetching episodes`);
-      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
-      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for content analysis`);
+      
+      // Cache episode data separately since it's expensive to fetch
+      const episodeCacheKey = `${this.CACHE_PREFIX}episodes:${libraryId}`;
+      const cachedEpisodes = cache.get<any[]>(episodeCacheKey);
+      
+      if (cachedEpisodes) {
+        console.log(`[AnalyzerService] Using cached episodes for library ${libraryId} (${cachedEpisodes.length} episodes)`);
+        analysisItems = cachedEpisodes;
+      } else {
+        console.log(`[AnalyzerService] Fetching episodes from Plex for library ${libraryId}`);
+        analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+        console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for content analysis`);
+        
+        // Cache episodes with same TTL as other data
+        cache.set(episodeCacheKey, analysisItems, this.CACHE_TTL);
+        console.log(`[AnalyzerService] Cached episodes for library ${libraryId}`);
+      }
     }
 
     // Apply pagination to the analysis items
@@ -343,7 +403,22 @@ export class AnalyzerService {
     
     if (isShowLibrary) {
       console.log(`[AnalyzerService] TV show library detected, fetching episodes for total size`);
-      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+      
+      // Cache episode data separately since it's expensive to fetch
+      const episodeCacheKey = `${this.CACHE_PREFIX}episodes:${libraryId}`;
+      const cachedEpisodes = cache.get<any[]>(episodeCacheKey);
+      
+      if (cachedEpisodes) {
+        console.log(`[AnalyzerService] Using cached episodes for library ${libraryId} (${cachedEpisodes.length} episodes)`);
+        analysisItems = cachedEpisodes;
+      } else {
+        console.log(`[AnalyzerService] Fetching episodes from Plex for library ${libraryId}`);
+        analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+        
+        // Cache episodes with same TTL as other data
+        cache.set(episodeCacheKey, analysisItems, this.CACHE_TTL);
+        console.log(`[AnalyzerService] Cached episodes for library ${libraryId}`);
+      }
     }
 
     // Calculate total size from all files
