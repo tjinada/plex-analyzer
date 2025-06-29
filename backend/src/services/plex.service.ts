@@ -131,7 +131,60 @@ export class PlexService {
     }
 
     try {
-      const response = await this.client.get(`/library/sections/${libraryId}/all`);
+      // Add includeMedia parameter to ensure we get media information
+      const response = await this.client.get(`/library/sections/${libraryId}/all`, {
+        params: {
+          includeChildren: 1,
+          includeMedia: 1,
+          includeFile: 1
+        }
+      });
+      const items = response.data?.MediaContainer?.Metadata || [];
+      
+      console.log(`[PlexService] Retrieved ${items.length} items from library ${libraryId}`);
+      
+      // For all content types, process normally - don't auto-fetch episodes
+      console.log(`[PlexService] Processing ${items[0]?.type || 'unknown'} library normally`);
+      return items.map((item: any) => ({
+        id: item.ratingKey,
+        ratingKey: item.ratingKey, // Add this for analyzer compatibility
+        title: item.title,
+        type: item.type, // Add type (movie, episode, show, etc.)
+        year: item.year,
+        rating: item.rating,
+        summary: item.summary,
+        duration: item.duration,
+        addedAt: new Date(item.addedAt * 1000),
+        updatedAt: new Date(item.updatedAt * 1000),
+        libraryId,
+        files: [], // Will be populated by getMediaDetails
+        // Include raw media data for analyzer service
+        Media: item.Media, // This is the key missing piece!
+        Genre: item.Genre // Also include genre data
+      }));
+    } catch (error) {
+      console.error(`Failed to fetch items from library ${libraryId}:`, error);
+      throw this.createError('Failed to fetch library items', 500);
+    }
+  }
+
+  /**
+   * Get all items from a specific library with episodes for TV shows (for size analysis)
+   */
+  async getLibraryItemsWithEpisodes(libraryId: string): Promise<MediaItem[]> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Plex service not configured', 500);
+    }
+
+    try {
+      // Add includeMedia parameter to ensure we get media information
+      const response = await this.client.get(`/library/sections/${libraryId}/all`, {
+        params: {
+          includeChildren: 1,
+          includeMedia: 1,
+          includeFile: 1
+        }
+      });
       const items = response.data?.MediaContainer?.Metadata || [];
       
       console.log(`[PlexService] Retrieved ${items.length} items from library ${libraryId}`);
@@ -140,7 +193,7 @@ export class PlexService {
       const isShowLibrary = items.length > 0 && items[0].type === 'show';
       
       if (isShowLibrary) {
-        console.log(`[PlexService] Detected TV show library, getting episodes...`);
+        console.log(`[PlexService] Detected TV show library, getting episodes for size analysis...`);
         return await this.getEpisodesFromShows(items, libraryId);
       }
       
@@ -232,7 +285,7 @@ export class PlexService {
     
     console.log(`[PlexService] Processing ${shows.length} shows to get episodes`);
     
-    for (const show of shows.slice(0, 10)) { // Limit to first 10 shows to avoid overwhelming the API
+    for (const show of shows) { // Process all shows for accurate size analysis
       try {
         console.log(`[PlexService] Getting episodes for show: ${show.title}`);
         
@@ -241,8 +294,13 @@ export class PlexService {
         const seasons = seasonsResponse.data?.MediaContainer?.Metadata || [];
         
         for (const season of seasons) {
-          // Get episodes for this season
-          const episodesResponse = await this.client!.get(`/library/metadata/${season.ratingKey}/children`);
+          // Get episodes for this season with media information
+          const episodesResponse = await this.client!.get(`/library/metadata/${season.ratingKey}/children`, {
+            params: {
+              includeMedia: 1,
+              includeFile: 1
+            }
+          });
           const seasonEpisodes = episodesResponse.data?.MediaContainer?.Metadata || [];
           
           episodes.push(...seasonEpisodes.map((episode: any) => ({

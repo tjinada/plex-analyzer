@@ -17,6 +17,7 @@ export interface SizeAnalysis {
   largestFiles: MediaFile[];
   sizeDistribution: SizeDistribution[];
   averageFileSize: number;
+  totalSize: number;
 }
 
 export interface QualityAnalysis {
