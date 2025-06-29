@@ -6,6 +6,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { FormsModule } from '@angular/forms';
 import { SizeAnalysisComponent } from '../size-analysis/size-analysis.component';
 import { QualityAnalysisComponent } from '../quality-analysis/quality-analysis.component';
 import { ContentAnalysisComponent } from '../content-analysis/content-analysis.component';
@@ -22,6 +25,9 @@ import { Library } from '../../../../models';
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
+    MatFormFieldModule,
+    FormsModule,
     SizeAnalysisComponent,
     QualityAnalysisComponent,
     ContentAnalysisComponent
@@ -34,6 +40,16 @@ export class AnalyzerPageComponent implements OnInit {
   library: Library | null = null;
   selectedTabIndex = 0;
   isLoadingLibrary = true;
+
+  // Analysis configuration
+  selectedLimit: number = 50;
+  limitOptions = [
+    { value: 10, label: '10 Items' },
+    { value: 50, label: '50 Items' },
+    { value: 100, label: '100 Items' },
+    { value: 200, label: '200 Items' },
+    { value: -1, label: 'ALL Items' }
+  ];
 
   constructor(
     private route: ActivatedRoute,
@@ -120,6 +136,14 @@ export class AnalyzerPageComponent implements OnInit {
       return `Library Analysis - ${this.library.title}`;
     }
     return 'Library Analysis';
+  }
+
+  /**
+   * Handle limit change
+   */
+  onLimitChange(): void {
+    // The child components will react to the @Input change
+    console.log(`[AnalyzerPage] Limit changed to: ${this.selectedLimit}`);
   }
 
   /**

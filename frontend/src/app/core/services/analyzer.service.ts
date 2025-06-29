@@ -105,8 +105,12 @@ export class AnalyzerService {
   /**
    * Get size analysis for a library
    */
-  getSizeAnalysis(libraryId: string): Observable<SizeAnalysis> {
-    return this.apiService.get<any>(`/analyzer/library/${libraryId}/size`).pipe(
+  getSizeAnalysis(libraryId: string, limit?: number): Observable<SizeAnalysis> {
+    const params: { [key: string]: string } = {};
+    if (limit && (limit > 0 || limit === -1)) {
+      params['limit'] = limit.toString();
+    }
+    return this.apiService.get<any>(`/analyzer/library/${libraryId}/size`, params).pipe(
       map(response => response.data)
     );
   }
@@ -114,8 +118,12 @@ export class AnalyzerService {
   /**
    * Get quality analysis for a library
    */
-  getQualityAnalysis(libraryId: string): Observable<QualityAnalysis> {
-    return this.apiService.get<any>(`/analyzer/library/${libraryId}/quality`).pipe(
+  getQualityAnalysis(libraryId: string, limit?: number): Observable<QualityAnalysis> {
+    const params: { [key: string]: string } = {};
+    if (limit && (limit > 0 || limit === -1)) {
+      params['limit'] = limit.toString();
+    }
+    return this.apiService.get<any>(`/analyzer/library/${libraryId}/quality`, params).pipe(
       map(response => response.data)
     );
   }
@@ -123,8 +131,12 @@ export class AnalyzerService {
   /**
    * Get content analysis for a library
    */
-  getContentAnalysis(libraryId: string): Observable<ContentAnalysis> {
-    return this.apiService.get<any>(`/analyzer/library/${libraryId}/content`).pipe(
+  getContentAnalysis(libraryId: string, limit?: number): Observable<ContentAnalysis> {
+    const params: { [key: string]: string } = {};
+    if (limit && (limit > 0 || limit === -1)) {
+      params['limit'] = limit.toString();
+    }
+    return this.apiService.get<any>(`/analyzer/library/${libraryId}/content`, params).pipe(
       map(response => response.data)
     );
   }

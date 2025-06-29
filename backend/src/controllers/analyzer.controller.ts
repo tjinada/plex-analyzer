@@ -43,6 +43,7 @@ export class AnalyzerController {
   async getSizeAnalysis(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const libraryId = req.params.libraryId;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       
       if (!libraryId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -56,7 +57,7 @@ export class AnalyzerController {
         return;
       }
 
-      const sizeAnalysis = await analyzerService.getSizeAnalysis(libraryId);
+      const sizeAnalysis = await analyzerService.getSizeAnalysis(libraryId, limit);
       
       const response: ApiResponse = {
         success: true,
@@ -76,6 +77,7 @@ export class AnalyzerController {
   async getQualityAnalysis(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const libraryId = req.params.libraryId;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       
       if (!libraryId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -89,7 +91,7 @@ export class AnalyzerController {
         return;
       }
 
-      const qualityAnalysis = await analyzerService.getQualityAnalysis(libraryId);
+      const qualityAnalysis = await analyzerService.getQualityAnalysis(libraryId, limit);
       
       const response: ApiResponse = {
         success: true,
@@ -109,6 +111,7 @@ export class AnalyzerController {
   async getContentAnalysis(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const libraryId = req.params.libraryId;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       
       if (!libraryId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -122,7 +125,7 @@ export class AnalyzerController {
         return;
       }
 
-      const contentAnalysis = await analyzerService.getContentAnalysis(libraryId);
+      const contentAnalysis = await analyzerService.getContentAnalysis(libraryId, limit);
       
       const response: ApiResponse = {
         success: true,

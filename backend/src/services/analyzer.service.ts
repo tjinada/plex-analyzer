@@ -149,8 +149,8 @@ export class AnalyzerService {
   /**
    * Get size analysis for a library
    */
-  async getSizeAnalysis(libraryId: string): Promise<SizeAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}`;
+  async getSizeAnalysis(libraryId: string, limit?: number): Promise<SizeAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}:${limit || 'all'}`;
     const cached = cache.get<SizeAnalysis>(cacheKey);
     
     if (cached) {
@@ -165,7 +165,7 @@ export class AnalyzerService {
       throw this.createError('No items found in library', 404);
     }
 
-    const sizeAnalysis = await this.generateSizeAnalysis(items);
+    const sizeAnalysis = await this.generateSizeAnalysis(items, limit);
     cache.set(cacheKey, sizeAnalysis, this.CACHE_TTL);
     
     return sizeAnalysis;
@@ -174,20 +174,31 @@ export class AnalyzerService {
   /**
    * Get quality analysis for a library
    */
-  async getQualityAnalysis(libraryId: string): Promise<QualityAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}quality:${libraryId}`;
+  async getQualityAnalysis(libraryId: string, limit?: number): Promise<QualityAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}quality:${libraryId}:${limit || 'all'}`;
     const cached = cache.get<QualityAnalysis>(cacheKey);
     
     if (cached) {
       return cached;
     }
 
+    // Get items, using episodes for TV shows since quality data comes from video files
     const items = await plexService.getLibraryItems(libraryId);
     if (!items || items.length === 0) {
       throw this.createError('No items found in library', 404);
     }
 
-    const qualityAnalysis = await this.generateQualityAnalysis(items);
+    // Check if this is a TV show library and get episodes for quality analysis
+    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    let analysisItems = items;
+    
+    if (isShowLibrary) {
+      console.log(`[AnalyzerService] TV show library detected for quality analysis, fetching episodes`);
+      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for quality analysis`);
+    }
+
+    const qualityAnalysis = await this.generateQualityAnalysis(analysisItems, limit);
     cache.set(cacheKey, qualityAnalysis, this.CACHE_TTL);
     
     return qualityAnalysis;
@@ -196,20 +207,31 @@ export class AnalyzerService {
   /**
    * Get content analysis for a library
    */
-  async getContentAnalysis(libraryId: string): Promise<ContentAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}content:${libraryId}`;
+  async getContentAnalysis(libraryId: string, limit?: number): Promise<ContentAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}content:${libraryId}:${limit || 'all'}`;
     const cached = cache.get<ContentAnalysis>(cacheKey);
     
     if (cached) {
       return cached;
     }
 
+    // Get items, using episodes for TV shows for more granular content analysis
     const items = await plexService.getLibraryItems(libraryId);
     if (!items || items.length === 0) {
       throw this.createError('No items found in library', 404);
     }
 
-    const contentAnalysis = await this.generateContentAnalysis(items);
+    // Check if this is a TV show library and get episodes for content analysis
+    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    let analysisItems = items;
+    
+    if (isShowLibrary) {
+      console.log(`[AnalyzerService] TV show library detected for content analysis, fetching episodes`);
+      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for content analysis`);
+    }
+
+    const contentAnalysis = await this.generateContentAnalysis(analysisItems, limit);
     cache.set(cacheKey, contentAnalysis, this.CACHE_TTL);
     
     return contentAnalysis;
@@ -336,7 +358,7 @@ export class AnalyzerService {
   /**
    * Generate size analysis from library items
    */
-  private async generateSizeAnalysis(items: any[]): Promise<SizeAnalysis> {
+  private async generateSizeAnalysis(items: any[], limit?: number): Promise<SizeAnalysis> {
     console.log(`[AnalyzerService] Generating size analysis for ${items.length} items`);
     
     // For size analysis, we need episode-level data for TV shows
@@ -417,10 +439,11 @@ export class AnalyzerService {
         filesWithoutSize.slice(0, 3).map(f => ({ title: f.title, type: f.type })));
     }
 
-    // Sort by file size (largest first)
+    // Sort by file size (largest first) and apply limit
+    const limitToApply = limit && limit > 0 ? limit : 50; // Default to 50 if no limit or invalid limit
     const largestFiles = mediaFiles
       .sort((a, b) => b.fileSize - a.fileSize)
-      .slice(0, 50); // Top 50
+      .slice(0, limit === -1 ? mediaFiles.length : limitToApply); // -1 means ALL
 
     // Calculate size distribution
     const sizeDistribution = this.calculateSizeDistribution(mediaFiles);
@@ -445,11 +468,15 @@ export class AnalyzerService {
   /**
    * Generate quality analysis from library items
    */
-  private async generateQualityAnalysis(items: any[]): Promise<QualityAnalysis> {
+  private async generateQualityAnalysis(items: any[], limit?: number): Promise<QualityAnalysis> {
     const resolutionCounts = new Map<string, number>();
     const codecCounts = new Map<string, number>();
     
-    for (const item of items) {
+    // Apply limit to items if specified
+    const limitToApply = limit && limit > 0 ? limit : items.length;
+    const itemsToAnalyze = limit === -1 ? items : items.slice(0, limitToApply);
+    
+    for (const item of itemsToAnalyze) {
       if (item.Media && Array.isArray(item.Media)) {
         for (const media of item.Media) {
           const resolution = this.extractResolution(media);
@@ -461,7 +488,7 @@ export class AnalyzerService {
       }
     }
 
-    const totalItems = items.length;
+    const totalItems = itemsToAnalyze.length;
     
     const resolutionDistribution: ResolutionData[] = Array.from(resolutionCounts.entries())
       .map(([resolution, count]) => ({
@@ -489,12 +516,16 @@ export class AnalyzerService {
   /**
    * Generate content analysis from library items
    */
-  private async generateContentAnalysis(items: any[]): Promise<ContentAnalysis> {
+  private async generateContentAnalysis(items: any[], limit?: number): Promise<ContentAnalysis> {
     const genreCounts = new Map<string, number>();
     const yearCounts = new Map<number, number>();
     const runtimeRanges = new Map<string, { count: number; totalRuntime: number }>();
 
-    for (const item of items) {
+    // Apply limit to items if specified
+    const limitToApply = limit && limit > 0 ? limit : items.length;
+    const itemsToAnalyze = limit === -1 ? items : items.slice(0, limitToApply);
+
+    for (const item of itemsToAnalyze) {
       // Genre distribution
       if (item.Genre && Array.isArray(item.Genre)) {
         for (const genre of item.Genre) {
@@ -520,7 +551,7 @@ export class AnalyzerService {
       }
     }
 
-    const totalItems = items.length;
+    const totalItems = itemsToAnalyze.length;
 
     const genreDistribution: GenreData[] = Array.from(genreCounts.entries())
       .map(([genre, count]) => ({
