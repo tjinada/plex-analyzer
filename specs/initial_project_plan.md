@@ -393,9 +393,19 @@ Deep dive analysis of individual libraries
 - [x] Implement size analysis components
 - [x] Create quality analysis views
 - [x] Build content analysis features
+- [x] Add item limit selector (10, 50, 100, 200, ALL)
+- [x] Implement common limit selector across all analysis tabs
+- [x] Fix TV show quality analysis (use episode-level data)
 - [ ] Add chart visualizations
 - [x] Implement data tables
 - [ ] Create filtering system
+
+### Phase 4.5: Performance Optimization (Current) 🚧 IN PROGRESS
+- [ ] Implement smart pagination with backend support
+- [ ] Add lazy tab loading to prevent loading all data upfront
+- [ ] Implement frontend caching with RxJS
+- [ ] Add loading states and skeleton loaders
+- [ ] Optimize API responses for large datasets
 
 ### Phase 5: Advanced Features (Week 9-10)
 - [ ] Add export functionality

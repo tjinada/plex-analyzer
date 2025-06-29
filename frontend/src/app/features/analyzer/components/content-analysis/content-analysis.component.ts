@@ -89,8 +89,8 @@ export class ContentAnalysisComponent implements OnInit, OnChanges {
     this.isLoading = true;
     
     try {
-      const result = await this.analyzerService.getContentAnalysis(this.libraryId, this.limit).toPromise();
-      this.contentData = result || null;
+      const response = await this.analyzerService.getContentAnalysis(this.libraryId, this.limit).toPromise();
+      this.contentData = response?.data || null;
     } catch (error) {
       console.error('Failed to load content analysis:', error);
       this.snackBar.open('Failed to load content analysis', 'Close', { duration: 5000 });

@@ -1,6 +1,7 @@
 import { tautulliService } from './tautulli.service';
 import { cache } from '../utils/cache.util';
-import { ApiError } from '../models';
+import { ApiError, PaginationMeta } from '../models';
+import { createPaginationMeta, paginateArray } from '../utils/pagination.util';
 
 export interface LibraryAnalysis {
   libraryId: string;
@@ -16,6 +17,23 @@ export interface SizeAnalysis {
   largestFiles: MediaFile[];
   sizeDistribution: SizeDistribution[];
   averageFileSize: number;
+  totalSize: number;
+}
+
+// Paginated response interfaces
+export interface PaginatedSizeAnalysis {
+  data: SizeAnalysis;
+  pagination: PaginationMeta;
+}
+
+export interface PaginatedQualityAnalysis {
+  data: QualityAnalysis;
+  pagination: PaginationMeta;
+}
+
+export interface PaginatedContentAnalysis {
+  data: ContentAnalysis;
+  pagination: PaginationMeta;
 }
 
 export interface QualityAnalysis {
@@ -185,11 +203,11 @@ export class TautulliAnalyzerService {
   }
 
   /**
-   * Get size analysis for a library
+   * Get size analysis for a library with pagination support
    */
-  async getSizeAnalysis(libraryId: string): Promise<SizeAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}`;
-    const cached = cache.get<SizeAnalysis>(cacheKey);
+  async getSizeAnalysis(libraryId: string, limit: number = 25, offset: number = 0): Promise<PaginatedSizeAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}:${limit}:${offset}`;
+    const cached = cache.get<PaginatedSizeAnalysis>(cacheKey);
     
     if (cached) {
       return cached;
@@ -202,25 +220,37 @@ export class TautulliAnalyzerService {
     });
     
     const items = mediaInfo.data || [];
-    console.log(`[TautulliAnalyzerService] Retrieved ${items.length} items for library ${libraryId}`);
+    console.log(`[TautulliAnalyzerService] Retrieved ${items.length} total items for library ${libraryId}`);
     
     if (!items || items.length === 0) {
       console.warn(`[TautulliAnalyzerService] No items found in library ${libraryId}`);
       throw this.createError('No items found in library', 404);
     }
 
-    const sizeAnalysis = await this.generateSizeAnalysis(items);
-    cache.set(cacheKey, sizeAnalysis, this.CACHE_TTL);
+    // Apply pagination to the analysis items
+    const totalItems = items.length;
+    const paginatedItems = paginateArray(items, offset, limit);
     
-    return sizeAnalysis;
+    console.log(`[TautulliAnalyzerService] Processing ${paginatedItems.length} items (${offset}-${offset + paginatedItems.length} of ${totalItems})`);
+
+    const sizeAnalysis = await this.generateSizeAnalysis(paginatedItems);
+    const pagination = createPaginationMeta(offset, limit, totalItems);
+    
+    const result: PaginatedSizeAnalysis = {
+      data: sizeAnalysis,
+      pagination
+    };
+    
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
   }
 
   /**
-   * Get quality analysis for a library
+   * Get quality analysis for a library with pagination support
    */
-  async getQualityAnalysis(libraryId: string): Promise<QualityAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}quality:${libraryId}`;
-    const cached = cache.get<QualityAnalysis>(cacheKey);
+  async getQualityAnalysis(libraryId: string, limit: number = 50, offset: number = 0): Promise<PaginatedQualityAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}quality:${libraryId}:${limit}:${offset}`;
+    const cached = cache.get<PaginatedQualityAnalysis>(cacheKey);
     
     if (cached) {
       return cached;
@@ -233,18 +263,28 @@ export class TautulliAnalyzerService {
       throw this.createError('No items found in library', 404);
     }
 
-    const qualityAnalysis = await this.generateQualityAnalysis(items);
-    cache.set(cacheKey, qualityAnalysis, this.CACHE_TTL);
+    // Apply pagination to the analysis items
+    const totalItems = items.length;
+    const paginatedItems = paginateArray(items, offset, limit);
+
+    const qualityAnalysis = await this.generateQualityAnalysis(paginatedItems);
+    const pagination = createPaginationMeta(offset, limit, totalItems);
     
-    return qualityAnalysis;
+    const result: PaginatedQualityAnalysis = {
+      data: qualityAnalysis,
+      pagination
+    };
+    
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
   }
 
   /**
-   * Get content analysis for a library
+   * Get content analysis for a library with pagination support
    */
-  async getContentAnalysis(libraryId: string): Promise<ContentAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}content:${libraryId}`;
-    const cached = cache.get<ContentAnalysis>(cacheKey);
+  async getContentAnalysis(libraryId: string, limit: number = 50, offset: number = 0): Promise<PaginatedContentAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}content:${libraryId}:${limit}:${offset}`;
+    const cached = cache.get<PaginatedContentAnalysis>(cacheKey);
     
     if (cached) {
       return cached;
@@ -257,10 +297,33 @@ export class TautulliAnalyzerService {
       throw this.createError('No items found in library', 404);
     }
 
-    const contentAnalysis = await this.generateContentAnalysis(items);
-    cache.set(cacheKey, contentAnalysis, this.CACHE_TTL);
+    // Apply pagination to the analysis items
+    const totalItems = items.length;
+    const paginatedItems = paginateArray(items, offset, limit);
+
+    const contentAnalysis = await this.generateContentAnalysis(paginatedItems);
+    const pagination = createPaginationMeta(offset, limit, totalItems);
     
-    return contentAnalysis;
+    const result: PaginatedContentAnalysis = {
+      data: contentAnalysis,
+      pagination
+    };
+    
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
+  }
+
+  /**
+   * Get library total size (for library cards)
+   */
+  async getLibraryTotalSize(libraryId: string): Promise<number> {
+    try {
+      const mediaInfo = await tautulliService.getLibraryMediaInfo(libraryId, { length: 1 });
+      return parseInt(mediaInfo.total_file_size || '0', 10);
+    } catch (error) {
+      console.error(`[TautulliAnalyzerService] Error getting library total size for ${libraryId}:`, error);
+      return 0;
+    }
   }
 
   /**
@@ -420,7 +483,8 @@ export class TautulliAnalyzerService {
     return {
       largestFiles,
       sizeDistribution,
-      averageFileSize
+      averageFileSize,
+      totalSize
     };
   }
 

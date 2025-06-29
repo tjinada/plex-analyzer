@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { HTTP_STATUS } from '../config/constants';
-import { ApiResponse } from '../models';
+import { ApiResponse, PaginatedApiResponse, PaginationParams } from '../models';
 import { analyzerService } from '../services/analyzer-factory';
+import { validatePaginationParams } from '../utils/pagination.util';
 
 export class AnalyzerController {
   /**
@@ -43,7 +44,6 @@ export class AnalyzerController {
   async getSizeAnalysis(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const libraryId = req.params.libraryId;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       
       if (!libraryId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -57,11 +57,19 @@ export class AnalyzerController {
         return;
       }
 
-      const sizeAnalysis = await analyzerService.getSizeAnalysis(libraryId, limit);
+      // Extract and validate pagination parameters
+      const paginationParams: PaginationParams = {
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string, 10) : undefined
+      };
       
-      const response: ApiResponse = {
+      const { limit, offset } = validatePaginationParams(paginationParams, 'size');
+      const result = await analyzerService.getSizeAnalysis(libraryId, limit, offset);
+      
+      const response: PaginatedApiResponse = {
         success: true,
-        data: sizeAnalysis,
+        data: result.data,
+        pagination: result.pagination,
         timestamp: new Date().toISOString(),
       };
 
@@ -77,7 +85,6 @@ export class AnalyzerController {
   async getQualityAnalysis(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const libraryId = req.params.libraryId;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       
       if (!libraryId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -91,11 +98,19 @@ export class AnalyzerController {
         return;
       }
 
-      const qualityAnalysis = await analyzerService.getQualityAnalysis(libraryId, limit);
+      // Extract and validate pagination parameters
+      const paginationParams: PaginationParams = {
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string, 10) : undefined
+      };
       
-      const response: ApiResponse = {
+      const { limit, offset } = validatePaginationParams(paginationParams, 'quality');
+      const result = await analyzerService.getQualityAnalysis(libraryId, limit, offset);
+      
+      const response: PaginatedApiResponse = {
         success: true,
-        data: qualityAnalysis,
+        data: result.data,
+        pagination: result.pagination,
         timestamp: new Date().toISOString(),
       };
 
@@ -111,7 +126,6 @@ export class AnalyzerController {
   async getContentAnalysis(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const libraryId = req.params.libraryId;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
       
       if (!libraryId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -125,11 +139,19 @@ export class AnalyzerController {
         return;
       }
 
-      const contentAnalysis = await analyzerService.getContentAnalysis(libraryId, limit);
+      // Extract and validate pagination parameters
+      const paginationParams: PaginationParams = {
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string, 10) : undefined
+      };
       
-      const response: ApiResponse = {
+      const { limit, offset } = validatePaginationParams(paginationParams, 'content');
+      const result = await analyzerService.getContentAnalysis(libraryId, limit, offset);
+      
+      const response: PaginatedApiResponse = {
         success: true,
-        data: contentAnalysis,
+        data: result.data,
+        pagination: result.pagination,
         timestamp: new Date().toISOString(),
       };
 

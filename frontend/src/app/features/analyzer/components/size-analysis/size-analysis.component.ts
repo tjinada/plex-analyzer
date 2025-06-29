@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
@@ -10,6 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
 import { AnalyzerService, SizeAnalysis, MediaFile } from '../../../../core/services/analyzer.service';
+import { PaginatedResponse, PaginationMeta } from '../../../../models/pagination.model';
 
 @Component({
   selector: 'app-size-analysis',
@@ -31,11 +32,13 @@ import { AnalyzerService, SizeAnalysis, MediaFile } from '../../../../core/servi
 })
 export class SizeAnalysisComponent implements OnInit, OnChanges {
   @Input() libraryId!: string;
-  @Input() limit: number = 50;
+  @Input() limit: number = 25;
+  @Output() loadingStateChange = new EventEmitter<{ isLoading: boolean; hasError: boolean; errorMessage?: string }>();
 
   sizeAnalysis: SizeAnalysis | null = null;
   isLoading = false;
   error: string | null = null;
+  pagination: PaginationMeta | null = null;
 
   // Table configuration
   displayedColumns: string[] = ['title', 'fileSize', 'resolution', 'codec', 'filePath'];
@@ -60,15 +63,23 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
 
     this.isLoading = true;
     this.error = null;
+    this.loadingStateChange.emit({ isLoading: true, hasError: false });
 
     this.analyzerService.getSizeAnalysis(this.libraryId, this.limit).subscribe({
-      next: (analysis) => {
-        this.sizeAnalysis = analysis;
+      next: (response) => {
+        this.sizeAnalysis = response.data;
+        this.pagination = response.pagination;
         this.isLoading = false;
+        this.loadingStateChange.emit({ isLoading: false, hasError: false });
       },
       error: (error) => {
         this.error = 'Failed to load size analysis';
         this.isLoading = false;
+        this.loadingStateChange.emit({ 
+          isLoading: false, 
+          hasError: true, 
+          errorMessage: this.error 
+        });
         console.error('Error loading size analysis:', error);
       }
     });

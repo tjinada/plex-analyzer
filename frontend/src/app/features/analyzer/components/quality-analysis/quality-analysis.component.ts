@@ -88,8 +88,8 @@ export class QualityAnalysisComponent implements OnInit, OnChanges {
     this.isLoading = true;
     
     try {
-      const result = await this.analyzerService.getQualityAnalysis(this.libraryId, this.limit).toPromise();
-      this.qualityData = result || null;
+      const response = await this.analyzerService.getQualityAnalysis(this.libraryId, this.limit).toPromise();
+      this.qualityData = response?.data || null;
     } catch (error) {
       console.error('Failed to load quality analysis:', error);
       this.snackBar.open('Failed to load quality analysis', 'Close', { duration: 5000 });

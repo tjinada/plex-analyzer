@@ -3,7 +3,8 @@ import { tautulliService } from './tautulli.service';
 import { radarrService } from './radarr.service';
 import { sonarrService } from './sonarr.service';
 import { cache } from '../utils/cache.util';
-import { ApiError } from '../models';
+import { ApiError, PaginationMeta } from '../models';
+import { createPaginationMeta, paginateArray } from '../utils/pagination.util';
 
 export interface LibraryAnalysis {
   libraryId: string;
@@ -20,6 +21,22 @@ export interface SizeAnalysis {
   sizeDistribution: SizeDistribution[];
   averageFileSize: number;
   totalSize: number;
+}
+
+// Paginated response interfaces
+export interface PaginatedSizeAnalysis {
+  data: SizeAnalysis;
+  pagination: PaginationMeta;
+}
+
+export interface PaginatedQualityAnalysis {
+  data: QualityAnalysis;
+  pagination: PaginationMeta;
+}
+
+export interface PaginatedContentAnalysis {
+  data: ContentAnalysis;
+  pagination: PaginationMeta;
 }
 
 export interface QualityAnalysis {
@@ -119,9 +136,19 @@ export class AnalyzerService {
         throw this.createError('No items found in library', 404);
       }
 
+      // For size analysis, we need episode-level data for TV shows to get accurate file sizes
+      const isShowLibrary = items.length > 0 && items[0].type === 'show';
+      let sizeAnalysisItems = items;
+      
+      if (isShowLibrary) {
+        console.log(`[AnalyzerService] TV show library detected, fetching episodes for size analysis`);
+        sizeAnalysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+        console.log(`[AnalyzerService] Retrieved ${sizeAnalysisItems.length} episodes for size analysis`);
+      }
+
       // Generate all analyses
       const [sizeAnalysis, qualityAnalysis, contentAnalysis] = await Promise.all([
-        this.generateSizeAnalysis(items),
+        this.generateSizeAnalysis(sizeAnalysisItems),
         this.generateQualityAnalysis(items),
         this.generateContentAnalysis(items)
       ]);
@@ -147,40 +174,68 @@ export class AnalyzerService {
   }
 
   /**
-   * Get size analysis for a library
+   * Get size analysis for a library with pagination support
    */
-  async getSizeAnalysis(libraryId: string, limit?: number): Promise<SizeAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}:${limit || 'all'}`;
-    const cached = cache.get<SizeAnalysis>(cacheKey);
+  async getSizeAnalysis(libraryId: string, limit: number = 25, offset: number = 0): Promise<PaginatedSizeAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}:${limit}:${offset}`;
+    const cached = cache.get<PaginatedSizeAnalysis>(cacheKey);
     
     if (cached) {
+      console.log(`[AnalyzerService] Returning cached size analysis for library ${libraryId}`);
       return cached;
     }
 
+    console.log(`[AnalyzerService] Generating size analysis for library ${libraryId} (limit: ${limit}, offset: ${offset})`);
+
     const items = await plexService.getLibraryItems(libraryId);
-    console.log(`[AnalyzerService] Retrieved ${items?.length || 0} items for library ${libraryId}`);
+    console.log(`[AnalyzerService] Retrieved ${items?.length || 0} total items for library ${libraryId}`);
     
     if (!items || items.length === 0) {
       console.warn(`[AnalyzerService] No items found in library ${libraryId}`);
       throw this.createError('No items found in library', 404);
     }
 
-    const sizeAnalysis = await this.generateSizeAnalysis(items, limit);
-    cache.set(cacheKey, sizeAnalysis, this.CACHE_TTL);
+    // For size analysis, we need episode-level data for TV shows to get accurate file sizes
+    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    let analysisItems = items;
     
-    return sizeAnalysis;
+    if (isShowLibrary) {
+      console.log(`[AnalyzerService] TV show library detected, fetching episodes for size analysis`);
+      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for size analysis`);
+    }
+
+    // Apply pagination to the analysis items (KISS principle)
+    const totalItems = analysisItems.length;
+    const paginatedItems = paginateArray(analysisItems, offset, limit);
+    
+    console.log(`[AnalyzerService] Processing ${paginatedItems.length} items (${offset}-${offset + paginatedItems.length} of ${totalItems})`);
+
+    const sizeAnalysis = await this.generateSizeAnalysis(paginatedItems);
+    const pagination = createPaginationMeta(offset, limit, totalItems);
+    
+    const result: PaginatedSizeAnalysis = {
+      data: sizeAnalysis,
+      pagination
+    };
+    
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
   }
 
   /**
-   * Get quality analysis for a library
+   * Get quality analysis for a library with pagination support
    */
-  async getQualityAnalysis(libraryId: string, limit?: number): Promise<QualityAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}quality:${libraryId}:${limit || 'all'}`;
-    const cached = cache.get<QualityAnalysis>(cacheKey);
+  async getQualityAnalysis(libraryId: string, limit: number = 50, offset: number = 0): Promise<PaginatedQualityAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}quality:${libraryId}:${limit}:${offset}`;
+    const cached = cache.get<PaginatedQualityAnalysis>(cacheKey);
     
     if (cached) {
+      console.log(`[AnalyzerService] Returning cached quality analysis for library ${libraryId}`);
       return cached;
     }
+
+    console.log(`[AnalyzerService] Generating quality analysis for library ${libraryId} (limit: ${limit}, offset: ${offset})`);
 
     // Get items, using episodes for TV shows since quality data comes from video files
     const items = await plexService.getLibraryItems(libraryId);
@@ -198,22 +253,37 @@ export class AnalyzerService {
       console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for quality analysis`);
     }
 
-    const qualityAnalysis = await this.generateQualityAnalysis(analysisItems, limit);
-    cache.set(cacheKey, qualityAnalysis, this.CACHE_TTL);
+    // Apply pagination to the analysis items
+    const totalItems = analysisItems.length;
+    const paginatedItems = paginateArray(analysisItems, offset, limit);
     
-    return qualityAnalysis;
+    console.log(`[AnalyzerService] Processing ${paginatedItems.length} items (${offset}-${offset + paginatedItems.length} of ${totalItems})`);
+
+    const qualityAnalysis = await this.generateQualityAnalysis(paginatedItems);
+    const pagination = createPaginationMeta(offset, limit, totalItems);
+    
+    const result: PaginatedQualityAnalysis = {
+      data: qualityAnalysis,
+      pagination
+    };
+    
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
   }
 
   /**
-   * Get content analysis for a library
+   * Get content analysis for a library with pagination support
    */
-  async getContentAnalysis(libraryId: string, limit?: number): Promise<ContentAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}content:${libraryId}:${limit || 'all'}`;
-    const cached = cache.get<ContentAnalysis>(cacheKey);
+  async getContentAnalysis(libraryId: string, limit: number = 50, offset: number = 0): Promise<PaginatedContentAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}content:${libraryId}:${limit}:${offset}`;
+    const cached = cache.get<PaginatedContentAnalysis>(cacheKey);
     
     if (cached) {
+      console.log(`[AnalyzerService] Returning cached content analysis for library ${libraryId}`);
       return cached;
     }
+
+    console.log(`[AnalyzerService] Generating content analysis for library ${libraryId} (limit: ${limit}, offset: ${offset})`);
 
     // Get items, using episodes for TV shows for more granular content analysis
     const items = await plexService.getLibraryItems(libraryId);
@@ -231,27 +301,84 @@ export class AnalyzerService {
       console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for content analysis`);
     }
 
-    const contentAnalysis = await this.generateContentAnalysis(analysisItems, limit);
-    cache.set(cacheKey, contentAnalysis, this.CACHE_TTL);
+    // Apply pagination to the analysis items
+    const totalItems = analysisItems.length;
+    const paginatedItems = paginateArray(analysisItems, offset, limit);
     
-    return contentAnalysis;
+    console.log(`[AnalyzerService] Processing ${paginatedItems.length} items (${offset}-${offset + paginatedItems.length} of ${totalItems})`);
+
+    const contentAnalysis = await this.generateContentAnalysis(paginatedItems);
+    const pagination = createPaginationMeta(offset, limit, totalItems);
+    
+    const result: PaginatedContentAnalysis = {
+      data: contentAnalysis,
+      pagination
+    };
+    
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
+  }
+
+  /**
+   * Get total size for a library (used by library cards - no pagination needed)
+   */
+  async getLibraryTotalSize(libraryId: string): Promise<number> {
+    const cacheKey = `${this.CACHE_PREFIX}total_size:${libraryId}`;
+    const cached = cache.get<number>(cacheKey);
+    
+    if (cached !== undefined && cached !== null) {
+      return cached;
+    }
+
+    console.log(`[AnalyzerService] Calculating total size for library ${libraryId}`);
+
+    const items = await plexService.getLibraryItems(libraryId);
+    if (!items || items.length === 0) {
+      return 0;
+    }
+
+    // Check if this is a TV show library and get episodes for accurate size
+    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    let analysisItems = items;
+    
+    if (isShowLibrary) {
+      console.log(`[AnalyzerService] TV show library detected, fetching episodes for total size`);
+      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
+    }
+
+    // Calculate total size from all files
+    let totalSize = 0;
+    for (const item of analysisItems) {
+      if (item.Media && Array.isArray(item.Media)) {
+        for (const media of item.Media) {
+          if (media.Part && Array.isArray(media.Part)) {
+            for (const part of media.Part) {
+              totalSize += parseInt(part.size) || 0;
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`[AnalyzerService] Total size for library ${libraryId}: ${totalSize} bytes`);
+    cache.set(cacheKey, totalSize, this.CACHE_TTL);
+    return totalSize;
   }
 
   /**
    * Refresh analysis data for a library
    */
   async refreshAnalysis(libraryId: string): Promise<void> {
-    const cacheKeys = [
-      `${this.CACHE_PREFIX}library:${libraryId}`,
-      `${this.CACHE_PREFIX}size:${libraryId}`,
-      `${this.CACHE_PREFIX}quality:${libraryId}`,
-      `${this.CACHE_PREFIX}content:${libraryId}`
-    ];
+    // Clear all cache entries for this library (including paginated variations)
+    const allKeys = cache.getStats().keys;
+    const libraryKeyPattern = `${this.CACHE_PREFIX}`;
+    const keysToDelete = allKeys.filter(key => 
+      key.startsWith(libraryKeyPattern) && key.includes(`:${libraryId}`)
+    );
 
-    // Clear cache
-    cacheKeys.forEach(key => cache.delete(key));
+    keysToDelete.forEach(key => cache.delete(key));
     
-    console.log(`[AnalyzerService] Cleared analysis cache for library ${libraryId}`);
+    console.log(`[AnalyzerService] Cleared ${keysToDelete.length} cache entries for library ${libraryId}`);
   }
 
   /**
@@ -356,23 +483,13 @@ export class AnalyzerService {
   }
 
   /**
-   * Generate size analysis from library items
+   * Generate size analysis from library items (already paginated)
    */
-  private async generateSizeAnalysis(items: any[], limit?: number): Promise<SizeAnalysis> {
-    console.log(`[AnalyzerService] Generating size analysis for ${items.length} items`);
+  private async generateSizeAnalysis(items: any[]): Promise<SizeAnalysis> {
+    console.log(`[AnalyzerService] Generating size analysis for ${items.length} items (already paginated)`);
     
-    // For size analysis, we need episode-level data for TV shows
-    // Check if this is a TV show library by examining the first item
-    const isShowLibrary = items.length > 0 && items[0].type === 'show';
-    let analysisItems = items;
-    
-    if (isShowLibrary) {
-      console.log(`[AnalyzerService] TV show library detected, fetching episodes for size analysis`);
-      // Get the libraryId from the first item
-      const libraryId = items[0].libraryId;
-      analysisItems = await plexService.getLibraryItemsWithEpisodes(libraryId);
-      console.log(`[AnalyzerService] Retrieved ${analysisItems.length} episodes for size analysis`);
-    }
+    // Items are already paginated and episode-level if needed
+    const analysisItems = items;
     
     const mediaFiles: MediaFile[] = [];
     
@@ -439,11 +556,9 @@ export class AnalyzerService {
         filesWithoutSize.slice(0, 3).map(f => ({ title: f.title, type: f.type })));
     }
 
-    // Sort by file size (largest first) and apply limit
-    const limitToApply = limit && limit > 0 ? limit : 50; // Default to 50 if no limit or invalid limit
+    // Sort by file size (largest first) - pagination already applied
     const largestFiles = mediaFiles
-      .sort((a, b) => b.fileSize - a.fileSize)
-      .slice(0, limit === -1 ? mediaFiles.length : limitToApply); // -1 means ALL
+      .sort((a, b) => b.fileSize - a.fileSize);
 
     // Calculate size distribution
     const sizeDistribution = this.calculateSizeDistribution(mediaFiles);
@@ -466,17 +581,14 @@ export class AnalyzerService {
   }
 
   /**
-   * Generate quality analysis from library items
+   * Generate quality analysis from library items (already paginated)
    */
-  private async generateQualityAnalysis(items: any[], limit?: number): Promise<QualityAnalysis> {
+  private async generateQualityAnalysis(items: any[]): Promise<QualityAnalysis> {
     const resolutionCounts = new Map<string, number>();
     const codecCounts = new Map<string, number>();
     
-    // Apply limit to items if specified
-    const limitToApply = limit && limit > 0 ? limit : items.length;
-    const itemsToAnalyze = limit === -1 ? items : items.slice(0, limitToApply);
-    
-    for (const item of itemsToAnalyze) {
+    // Items are already paginated
+    for (const item of items) {
       if (item.Media && Array.isArray(item.Media)) {
         for (const media of item.Media) {
           const resolution = this.extractResolution(media);
@@ -488,7 +600,7 @@ export class AnalyzerService {
       }
     }
 
-    const totalItems = itemsToAnalyze.length;
+    const totalItems = items.length;
     
     const resolutionDistribution: ResolutionData[] = Array.from(resolutionCounts.entries())
       .map(([resolution, count]) => ({
@@ -514,18 +626,15 @@ export class AnalyzerService {
   }
 
   /**
-   * Generate content analysis from library items
+   * Generate content analysis from library items (already paginated)
    */
-  private async generateContentAnalysis(items: any[], limit?: number): Promise<ContentAnalysis> {
+  private async generateContentAnalysis(items: any[]): Promise<ContentAnalysis> {
     const genreCounts = new Map<string, number>();
     const yearCounts = new Map<number, number>();
     const runtimeRanges = new Map<string, { count: number; totalRuntime: number }>();
 
-    // Apply limit to items if specified
-    const limitToApply = limit && limit > 0 ? limit : items.length;
-    const itemsToAnalyze = limit === -1 ? items : items.slice(0, limitToApply);
-
-    for (const item of itemsToAnalyze) {
+    // Items are already paginated
+    for (const item of items) {
       // Genre distribution
       if (item.Genre && Array.isArray(item.Genre)) {
         for (const genre of item.Genre) {
@@ -551,7 +660,7 @@ export class AnalyzerService {
       }
     }
 
-    const totalItems = itemsToAnalyze.length;
+    const totalItems = items.length;
 
     const genreDistribution: GenreData[] = Array.from(genreCounts.entries())
       .map(([genre, count]) => ({

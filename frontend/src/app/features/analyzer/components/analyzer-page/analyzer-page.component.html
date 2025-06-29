@@ -34,7 +34,10 @@
       <!-- Size Analysis Tab -->
       <mat-tab label="Size Analysis">
         <ng-template matTabContent>
-          <app-size-analysis [libraryId]="libraryId" [limit]="selectedLimit"></app-size-analysis>
+          <app-size-analysis 
+            [libraryId]="libraryId" 
+            [limit]="selectedLimit"
+            (loadingStateChange)="onSizeAnalysisLoadingChange($event)"></app-size-analysis>
         </ng-template>
       </mat-tab>
 
