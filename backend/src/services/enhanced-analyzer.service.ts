@@ -157,8 +157,9 @@ export class EnhancedAnalyzerService extends TautulliAnalyzerService {
     try {
       // Extract technical details from file path or MediaInfo
       const technicalDetails = await this.extractTechnicalDetails(file);
-      const sourceType = this.detectSourceType(file.filePath);
-      const releaseGroup = this.extractReleaseGroup(file.filePath);
+      // Use both filePath and title for source detection
+      const sourceType = this.detectSourceType(file.filePath === 'Unknown' ? file.title : file.filePath);
+      const releaseGroup = this.extractReleaseGroup(file.filePath === 'Unknown' ? file.title : file.filePath);
       
       // Calculate quality score
       const qualityData = this.qualityScorer.calculateQualityScore(
@@ -188,7 +189,7 @@ export class EnhancedAnalyzerService extends TautulliAnalyzerService {
         // Source info
         sourceType,
         releaseGroup,
-        encodingTool: this.extractEncodingTool(file.filePath),
+        encodingTool: this.extractEncodingTool(file.filePath === 'Unknown' ? file.title : file.filePath),
         
         // Quality scoring
         qualityScore: qualityData.totalScore,
@@ -238,7 +239,8 @@ export class EnhancedAnalyzerService extends TautulliAnalyzerService {
     audio: AudioTechnicalDetails;
     container: ContainerDetails;
   } {
-    const fileName = file.filePath || file.title;
+    // Use title if filePath is Unknown or empty
+    const fileName = (file.filePath && file.filePath !== 'Unknown') ? file.filePath : file.title;
     const resolution = this.parseResolution(file.resolution);
     
     return {
@@ -411,27 +413,48 @@ export class EnhancedAnalyzerService extends TautulliAnalyzerService {
     return (fileSize * 8) / duration; // bits per second
   }
 
-  private detectSourceType(filePath: string): string {
-    const path = filePath.toLowerCase();
+  private detectSourceType(searchText: string): string {
+    // Check text for source information (can be either file path or title)
+    const searchString = searchText.toLowerCase();
     
-    if (path.includes('remux')) return 'Blu-ray Remux';
-    if (path.includes('bluray') || path.includes('bdrip')) return 'Blu-ray';
-    if (path.includes('web-dl') || path.includes('webdl')) return 'Web-DL';
-    if (path.includes('webrip') || path.includes('web-rip')) return 'WEB-RIP';
-    if (path.includes('hdtv')) return 'HDTV';
-    if (path.includes('dvdrip') || path.includes('dvd')) return 'DVD';
+    if (searchString.includes('remux')) return 'Blu-ray Remux';
+    if (searchString.includes('bluray') || searchString.includes('blu-ray') || searchString.includes('bdrip') || searchString.includes('brrip')) return 'Blu-ray';
+    if (searchString.includes('web-dl') || searchString.includes('webdl') || searchString.includes('web.dl')) return 'Web-DL';
+    if (searchString.includes('webrip') || searchString.includes('web-rip') || searchString.includes('web.rip')) return 'WEB-RIP';
+    if (searchString.includes('hdtv')) return 'HDTV';
+    if (searchString.includes('dvdrip') || searchString.includes('dvd')) return 'DVD';
+    if (searchString.includes('hdcam') || searchString.includes('cam')) return 'CAM';
+    if (searchString.includes('screener') || searchString.includes('scr')) return 'Screener';
+    
+    // If no source type found, try to infer from quality indicators
+    if (searchString.includes('4k') || searchString.includes('2160p')) return 'Digital';
+    if (searchString.includes('1080p') || searchString.includes('720p')) return 'Digital';
     
     return 'Unknown';
   }
 
-  private extractReleaseGroup(filePath: string): string | undefined {
-    const match = filePath.match(/\[([^\]]+)\]$/);
-    return match ? match[1] : undefined;
+  private extractReleaseGroup(searchText: string): string | undefined {
+    // Try various release group patterns
+    // Pattern 1: [GROUP] at the end
+    let match = searchText.match(/\[([^\]]+)\]$/);;
+    if (match) return match[1];
+    
+    // Pattern 2: -GROUP at the end (common in scene releases)
+    match = searchText.match(/-([A-Za-z0-9]+)(?:\.[^.]+)?$/);
+    if (match && match[1].length >= 2 && match[1].length <= 10) {
+      // Basic validation: release groups are typically 2-10 chars
+      return match[1];
+    }
+    
+    return undefined;
   }
 
-  private extractEncodingTool(filePath: string): string {
-    if (/x265/i.test(filePath)) return 'x265';
-    if (/x264/i.test(filePath)) return 'x264';
+  private extractEncodingTool(searchText: string): string {
+    if (/x265/i.test(searchText)) return 'x265';
+    if (/x264/i.test(searchText)) return 'x264';
+    if (/av1/i.test(searchText)) return 'AV1';
+    if (/vp9/i.test(searchText)) return 'VP9';
+    if (/xvid/i.test(searchText)) return 'XviD';
     return 'Unknown';
   }
 

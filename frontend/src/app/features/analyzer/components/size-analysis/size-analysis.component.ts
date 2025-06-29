@@ -62,7 +62,7 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
 
   // Table configuration
   basicColumns: string[] = ['title', 'fileSize', 'resolution', 'codec', 'filePath'];
-  enhancedColumns: string[] = ['title', 'fileSize', 'technical', 'quality', 'filePath'];
+  enhancedColumns: string[] = ['title', 'fileSize', 'technical', 'quality'];
   displayedColumns: string[] = this.basicColumns;
   
   constructor(private analyzerService: AnalyzerService) {}
@@ -292,8 +292,8 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
       // Enhanced CSV format
       const headers = [
         'Title', 'File Size (Bytes)', 'File Size (Formatted)', 'Resolution', 'Codec', 
-        'Video Profile', 'Bit Depth', 'HDR Format', 'Quality Score', 'Quality Tier', 
-        'Source Type', 'File Path'
+        'Video Profile', 'Bit Depth', 'Video Bitrate', 'Quality Score', 'Quality Tier', 
+        'File Path'
       ];
       const rows = files.map(file => {
         const enhanced = file as EnhancedMediaFile;
@@ -305,10 +305,9 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
           enhanced.codec,
           enhanced.videoProfile,
           enhanced.bitDepth.toString(),
-          enhanced.hdrFormat || 'None',
+          this.formatBitrate(enhanced.videoBitrate),
           enhanced.qualityScore.toString(),
           enhanced.qualityTier,
-          enhanced.sourceType,
           enhanced.filePath
         ];
       });

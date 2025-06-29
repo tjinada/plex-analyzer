@@ -231,17 +231,16 @@ export class TautulliAnalyzerService {
       throw this.createError('No items found in library', 404);
     }
 
-    // Apply pagination to the analysis items
+    // Generate analysis on ALL items first
     const totalItems = items.length;
-    const paginatedItems = paginateArray(items, offset, limit);
+    const fullSizeAnalysis = await this.generateSizeAnalysis(items, limit, offset);
     
-    console.log(`[TautulliAnalyzerService] Processing ${paginatedItems.length} items (${offset}-${offset + paginatedItems.length} of ${totalItems})`);
+    console.log(`[TautulliAnalyzerService] Generated analysis with ${fullSizeAnalysis.largestFiles.length} items (limit: ${limit}, offset: ${offset})`);
 
-    const sizeAnalysis = await this.generateSizeAnalysis(paginatedItems);
     const pagination = createPaginationMeta(offset, limit, totalItems);
     
     const result: PaginatedSizeAnalysis = {
-      data: sizeAnalysis,
+      data: fullSizeAnalysis,
       pagination
     };
     
@@ -447,7 +446,7 @@ export class TautulliAnalyzerService {
   /**
    * Generate size analysis from Tautulli media items
    */
-  private async generateSizeAnalysis(items: any[]): Promise<SizeAnalysis> {
+  private async generateSizeAnalysis(items: any[], limit: number = 50, offset: number = 0): Promise<SizeAnalysis> {
     console.log(`[TautulliAnalyzerService] Generating size analysis for ${items.length} items`);
     const mediaFiles: MediaFile[] = [];
     
@@ -482,10 +481,13 @@ export class TautulliAnalyzerService {
       console.log(`[TautulliAnalyzerService] Aggregated ${mediaFiles.length} episodes into ${processedFiles.length} shows/movies`);
     }
 
-    // Sort by file size (largest first)
-    const largestFiles = processedFiles
-      .sort((a, b) => b.fileSize - a.fileSize)
-      .slice(0, 50); // Top 50
+    // Sort by file size (largest first) and apply pagination
+    const sortedFiles = processedFiles.sort((a, b) => b.fileSize - a.fileSize);
+    
+    // Apply pagination based on limit and offset
+    const largestFiles = limit === Number.MAX_SAFE_INTEGER 
+      ? sortedFiles // Return all items if limit is max (from -1)
+      : sortedFiles.slice(offset, offset + limit);
 
     // Calculate size distribution using processed files
     const sizeDistribution = this.calculateSizeDistribution(processedFiles);
@@ -502,10 +504,12 @@ export class TautulliAnalyzerService {
       hasEpisodes
     };
 
-    // For TV show libraries, include episode breakdown
+    // For TV show libraries, include episode breakdown with same pagination
     if (hasEpisodes) {
-      result.episodeBreakdown = mediaFiles
-        .sort((a, b) => b.fileSize - a.fileSize);
+      const sortedEpisodes = mediaFiles.sort((a, b) => b.fileSize - a.fileSize);
+      result.episodeBreakdown = limit === Number.MAX_SAFE_INTEGER 
+        ? sortedEpisodes
+        : sortedEpisodes.slice(offset, offset + limit);
     }
 
     return result;

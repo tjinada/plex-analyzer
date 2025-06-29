@@ -205,18 +205,20 @@
               <td mat-cell *matCellDef="let file" class="technical-cell">
                 <div class="technical-info" *ngIf="isEnhancedFile(file)">
                   <div class="tech-row">
+                    <span class="resolution-badge" [class]="'resolution-' + file.resolution.toLowerCase().replace('p', '')">
+                      {{ file.resolution }}
+                    </span>
                     <span class="codec-badge" [class]="getCodecClass(file.codec)">
+                      {{ file.codec }}
+                    </span>
+                    <span class="profile-badge">
                       {{ file.videoProfile }}
-                    </span>
-                    <span class="bit-depth-badge" [class]="'depth-' + file.bitDepth">
-                      {{ file.bitDepth }}-bit
-                    </span>
-                    <span *ngIf="file.hdrFormat" class="hdr-badge">
-                      {{ file.hdrFormat }}
                     </span>
                   </div>
                   <div class="tech-row">
-                    <span class="source-badge">{{ file.sourceType }}</span>
+                    <span class="bit-depth-badge" [class]="'depth-' + file.bitDepth">
+                      {{ file.bitDepth }}-bit
+                    </span>
                     <span class="bitrate-info" matTooltip="Video Bitrate">
                       {{ formatBitrate(file.videoBitrate) }}
                     </span>
