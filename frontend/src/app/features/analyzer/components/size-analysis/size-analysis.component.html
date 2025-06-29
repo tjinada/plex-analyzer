@@ -3,6 +3,15 @@
   <div class="analysis-header">
     <h2>Size Analysis</h2>
     <div class="header-actions">
+      <!-- Enhanced View Toggle -->
+      <mat-slide-toggle 
+        [checked]="showEnhancedView" 
+        (change)="toggleEnhancedView($event)"
+        [disabled]="isLoading"
+        matTooltip="Show technical details and quality metrics">
+        Enhanced View
+      </mat-slide-toggle>
+      
       <!-- View Toggle for TV Shows -->
       <button *ngIf="hasEpisodes" 
               mat-button 
@@ -16,7 +25,7 @@
       <button mat-icon-button (click)="refresh()" [disabled]="isLoading" matTooltip="Refresh">
         <mat-icon>refresh</mat-icon>
       </button>
-      <button mat-icon-button (click)="exportData()" [disabled]="!sizeAnalysis" matTooltip="Export CSV">
+      <button mat-icon-button (click)="exportData()" [disabled]="!getCurrentAnalysis()" matTooltip="Export CSV">
         <mat-icon>download</mat-icon>
       </button>
     </div>
@@ -36,7 +45,7 @@
   </div>
 
   <!-- Content -->
-  <div *ngIf="sizeAnalysis && !isLoading" class="analysis-content">
+  <div *ngIf="(sizeAnalysis || enhancedAnalysis) && !isLoading" class="analysis-content">
     
     <!-- Summary Cards -->
     <div class="summary-grid">
@@ -54,19 +63,19 @@
           <mat-card-title>Average Size</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <div class="metric-value">{{ formatFileSize(sizeAnalysis.averageFileSize) }}</div>
+          <div class="metric-value">{{ formatFileSize(getCurrentAnalysis()?.averageFileSize || 0) }}</div>
         </mat-card-content>
       </mat-card>
     </div>
 
     <!-- Size Distribution -->
-    <mat-card class="distribution-card" *ngIf="sizeAnalysis.sizeDistribution.length > 0">
+    <mat-card class="distribution-card" *ngIf="getCurrentAnalysis()?.sizeDistribution && getCurrentAnalysis()!.sizeDistribution.length > 0">
       <mat-card-header>
         <mat-card-title>Size Distribution</mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <div class="distribution-grid">
-          <div *ngFor="let dist of sizeAnalysis.sizeDistribution" class="distribution-item">
+          <div *ngFor="let dist of getCurrentAnalysis()!.sizeDistribution" class="distribution-item">
             <div class="distribution-label">{{ dist.range }}</div>
             <div class="distribution-count">{{ dist.count }} items</div>
             <div class="distribution-size">{{ formatFileSize(dist.totalSize) }}</div>
@@ -75,6 +84,75 @@
         </div>
       </mat-card-content>
     </mat-card>
+
+    <!-- Enhanced Quality Overview -->
+    <div *ngIf="showEnhancedView && enhancedAnalysis" class="enhanced-overview">
+      <div class="overview-grid">
+        
+        <!-- Quality Distribution Card -->
+        <mat-card class="overview-card">
+          <mat-card-header>
+            <mat-card-title>Quality Distribution</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="quality-stats">
+              <div class="quality-stat tier-excellent">
+                <span class="label">Excellent:</span>
+                <span class="value">{{ enhancedAnalysis.qualityDistribution.excellent }}</span>
+              </div>
+              <div class="quality-stat tier-good">
+                <span class="label">Good:</span>
+                <span class="value">{{ enhancedAnalysis.qualityDistribution.good }}</span>
+              </div>
+              <div class="quality-stat tier-fair">
+                <span class="label">Fair:</span>
+                <span class="value">{{ enhancedAnalysis.qualityDistribution.fair }}</span>
+              </div>
+              <div class="quality-stat tier-poor">
+                <span class="label">Poor:</span>
+                <span class="value">{{ enhancedAnalysis.qualityDistribution.poor }}</span>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- HDR Content Card -->
+        <mat-card class="overview-card" *ngIf="enhancedAnalysis.technicalBreakdown.hdrContent.count > 0">
+          <mat-card-header>
+            <mat-card-title>HDR Content</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="hdr-stats">
+              <div class="hdr-summary">
+                <span class="hdr-count">{{ enhancedAnalysis.technicalBreakdown.hdrContent.count }}</span>
+                <span class="hdr-percentage">({{ enhancedAnalysis.technicalBreakdown.hdrContent.percentage.toFixed(1) }}%)</span>
+              </div>
+              <div class="hdr-formats">
+                <mat-chip-listbox>
+                  <mat-chip *ngFor="let format of enhancedAnalysis!.technicalBreakdown.hdrContent.formats | keyvalue">
+                    {{ format.key }}: {{ format.value }}
+                  </mat-chip>
+                </mat-chip-listbox>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Upgrade Opportunities Card -->
+        <mat-card class="overview-card" *ngIf="enhancedAnalysis.upgradeRecommendations.length > 0">
+          <mat-card-header>
+            <mat-card-title>Upgrade Opportunities</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="upgrade-summary">
+              <div class="upgrade-count">{{ enhancedAnalysis.upgradeRecommendations.length }}</div>
+              <div class="upgrade-label">items can be upgraded</div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+      </div>
+    </div>
 
     <!-- Largest Files Table -->
     <mat-card class="table-card">
@@ -118,6 +196,51 @@
               <th mat-header-cell *matHeaderCellDef mat-sort-header>Codec</th>
               <td mat-cell *matCellDef="let file" class="codec-cell">
                 {{ file.codec }}
+              </td>
+            </ng-container>
+
+            <!-- Technical Details Column (Enhanced View) -->
+            <ng-container matColumnDef="technical">
+              <th mat-header-cell *matHeaderCellDef>Technical Details</th>
+              <td mat-cell *matCellDef="let file" class="technical-cell">
+                <div class="technical-info" *ngIf="isEnhancedFile(file)">
+                  <div class="tech-row">
+                    <span class="codec-badge" [class]="getCodecClass(file.codec)">
+                      {{ file.videoProfile }}
+                    </span>
+                    <span class="bit-depth-badge" [class]="'depth-' + file.bitDepth">
+                      {{ file.bitDepth }}-bit
+                    </span>
+                    <span *ngIf="file.hdrFormat" class="hdr-badge">
+                      {{ file.hdrFormat }}
+                    </span>
+                  </div>
+                  <div class="tech-row">
+                    <span class="source-badge">{{ file.sourceType }}</span>
+                    <span class="bitrate-info" matTooltip="Video Bitrate">
+                      {{ formatBitrate(file.videoBitrate) }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Quality Column (Enhanced View) -->
+            <ng-container matColumnDef="quality">
+              <th mat-header-cell *matHeaderCellDef>Quality</th>
+              <td mat-cell *matCellDef="let file" class="quality-cell">
+                <div class="quality-info" *ngIf="isEnhancedFile(file)">
+                  <div class="quality-score" [class]="getQualityTierClass(file.qualityTier)">
+                    {{ file.qualityScore }}/100
+                  </div>
+                  <div class="quality-tier">{{ file.qualityTier }}</div>
+                  <mat-icon *ngIf="file.upgradeCandidate" 
+                           class="upgrade-icon" 
+                           matTooltip="{{ file.upgradeReasons.join(', ') }}"
+                           color="accent">
+                    trending_up
+                  </mat-icon>
+                </div>
               </td>
             </ng-container>
 

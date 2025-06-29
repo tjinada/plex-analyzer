@@ -17,7 +17,9 @@
       "Bash(timeout 30s npm run dev:frontend)",
       "Bash(grep:*)",
       "Bash(touch:*)",
-      "Bash(ng build:*)"
+      "Bash(ng build:*)",
+      "Bash(npm search:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": []
   }

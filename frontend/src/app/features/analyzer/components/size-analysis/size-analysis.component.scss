@@ -17,7 +17,8 @@
 
   .header-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: 1rem;
+    align-items: center;
   }
 }
 
@@ -190,6 +191,232 @@
         font-size: 0.8rem;
         color: #666;
       }
+    }
+  }
+}
+
+// Enhanced view styles
+.enhanced-overview {
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .overview-card {
+    .quality-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .quality-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        border-radius: 4px;
+
+        &.tier-excellent {
+          background: #e8f5e8;
+          color: #2e7d32;
+        }
+
+        &.tier-good {
+          background: #e3f2fd;
+          color: #1976d2;
+        }
+
+        &.tier-fair {
+          background: #fff3e0;
+          color: #f57c00;
+        }
+
+        &.tier-poor {
+          background: #fce4ec;
+          color: #c2185b;
+        }
+
+        .label {
+          font-weight: 500;
+        }
+
+        .value {
+          font-weight: 600;
+        }
+      }
+    }
+
+    .hdr-stats {
+      .hdr-summary {
+        text-align: center;
+        margin-bottom: 1rem;
+
+        .hdr-count {
+          font-size: 2rem;
+          font-weight: 600;
+          color: #ff9800;
+        }
+
+        .hdr-percentage {
+          color: #666;
+          margin-left: 0.5rem;
+        }
+      }
+
+      .hdr-formats {
+        mat-chip-listbox {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+      }
+    }
+
+    .upgrade-summary {
+      text-align: center;
+
+      .upgrade-count {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #ff5722;
+      }
+
+      .upgrade-label {
+        color: #666;
+        margin-top: 0.5rem;
+      }
+    }
+  }
+}
+
+// Enhanced table styles
+.technical-cell {
+  .technical-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .tech-row {
+      display: flex;
+      gap: 0.25rem;
+      flex-wrap: wrap;
+    }
+
+    .codec-badge {
+      padding: 0.125rem 0.25rem;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 500;
+
+      &.codec-av1 {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      &.codec-h265 {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+
+      &.codec-h264 {
+        background: #fff3e0;
+        color: #f57c00;
+      }
+
+      &.codec-other {
+        background: #f5f5f5;
+        color: #666;
+      }
+    }
+
+    .bit-depth-badge {
+      padding: 0.125rem 0.25rem;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 500;
+
+      &.depth-10, &.depth-12 {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      &.depth-8 {
+        background: #f5f5f5;
+        color: #666;
+      }
+    }
+
+    .hdr-badge {
+      padding: 0.125rem 0.25rem;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      background: #ff9800;
+      color: white;
+    }
+
+    .source-badge {
+      padding: 0.125rem 0.25rem;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      background: #9c27b0;
+      color: white;
+    }
+
+    .bitrate-info {
+      font-size: 0.7rem;
+      color: #666;
+      font-family: monospace;
+    }
+  }
+}
+
+.quality-cell {
+  .quality-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    position: relative;
+
+    .quality-score {
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+
+      &.tier-excellent {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+
+      &.tier-good {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+
+      &.tier-fair {
+        background: #fff3e0;
+        color: #f57c00;
+      }
+
+      &.tier-poor {
+        background: #fce4ec;
+        color: #c2185b;
+      }
+    }
+
+    .quality-tier {
+      font-size: 0.7rem;
+      color: #666;
+    }
+
+    .upgrade-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
     }
   }
 }

@@ -49,6 +49,12 @@ router.get('/analyzer/library/:libraryId/quality', analyzerController.getQuality
 router.get('/analyzer/library/:libraryId/content', analyzerController.getContentAnalysis.bind(analyzerController));
 router.post('/analyzer/library/:libraryId/refresh', analyzerController.refreshAnalysis.bind(analyzerController));
 
+// Enhanced analyzer routes
+router.get('/analyzer/library/:libraryId/enhanced', analyzerController.getEnhancedSizeAnalysis.bind(analyzerController));
+router.get('/analyzer/library/:libraryId/quality-metrics', analyzerController.getQualityMetrics.bind(analyzerController));
+router.get('/analyzer/library/:libraryId/upgrade-recommendations', analyzerController.getUpgradeRecommendations.bind(analyzerController));
+router.get('/analyzer/file/:fileId', analyzerController.getFileAnalysis.bind(analyzerController));
+
 // Settings routes
 router.get('/settings', settingsController.getSettings.bind(settingsController));
 router.put('/settings', settingsController.updateSettings.bind(settingsController));

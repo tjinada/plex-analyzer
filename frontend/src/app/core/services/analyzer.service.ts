@@ -49,6 +49,88 @@ export interface MediaFile {
   episodeCount?: number;  // For shows, the number of episodes
 }
 
+export interface EnhancedMediaFile extends MediaFile {
+  // Technical details
+  videoProfile: string;
+  bitDepth: number;
+  colorSpace: string;
+  colorRange: string;
+  chromaSubsampling: string;
+  frameRate: number;
+  hdrFormat?: string;
+  scanType: string;
+  
+  // Quality metrics
+  videoBitrate: number;
+  audioBitrate: number;
+  overallBitrate: number;
+  bitrateEfficiency: number;
+  sourceType: string;
+  releaseGroup?: string;
+  encodingTool: string;
+  
+  // Quality scoring
+  qualityScore: number;
+  qualityTier: QualityTier;
+  upgradeCandidate: boolean;
+  upgradeReasons: string[];
+}
+
+export enum QualityTier {
+  EXCELLENT = 'Excellent',
+  GOOD = 'Good',
+  FAIR = 'Fair',
+  POOR = 'Poor'
+}
+
+export interface QualityDistribution {
+  excellent: number;
+  good: number;
+  fair: number;
+  poor: number;
+}
+
+export interface CodecDistribution {
+  [codec: string]: {
+    count: number;
+    totalSize: number;
+    averageQuality: number;
+    percentage: number;
+  };
+}
+
+export interface TechnicalBreakdown {
+  hdrContent: {
+    count: number;
+    percentage: number;
+    formats: { [format: string]: number };
+  };
+  bitDepthDistribution: {
+    [depth: string]: number;
+  };
+  colorSpaceDistribution: {
+    [space: string]: number;
+  };
+}
+
+export interface UpgradeRecommendation {
+  fileId: string;
+  title: string;
+  currentQuality: QualityTier;
+  recommendedUpgrade: string;
+  reasons: string[];
+  potentialSavings?: number;
+}
+
+export interface EnhancedSizeAnalysis extends SizeAnalysis {
+  largestFiles: EnhancedMediaFile[];
+  episodeBreakdown?: EnhancedMediaFile[];
+  qualityDistribution: QualityDistribution;
+  codecDistribution: CodecDistribution;
+  technicalBreakdown: TechnicalBreakdown;
+  upgradeRecommendations: UpgradeRecommendation[];
+}
+
 export interface SizeDistribution {
   range: string;
   count: number;
@@ -204,6 +286,57 @@ export class AnalyzerService {
         // Cache the response
         this.cacheService.set(libraryId, 'content', limit, response.data, response.pagination, offset);
       })
+    );
+  }
+
+  /**
+   * Get enhanced size analysis with quality metrics
+   */
+  getEnhancedSizeAnalysis(libraryId: string, limit: number = -1, offset: number = 0): Observable<PaginatedResponse<EnhancedSizeAnalysis>> {
+    const params: { [key: string]: string } = {
+      limit: limit.toString(),
+      offset: offset.toString()
+    };
+
+    return this.apiService.get<PaginatedResponse<EnhancedSizeAnalysis>>(`/analyzer/library/${libraryId}/enhanced`, params);
+  }
+
+  /**
+   * Get quality metrics overview for a library
+   */
+  getQualityMetrics(libraryId: string): Observable<{
+    qualityDistribution: QualityDistribution;
+    codecDistribution: CodecDistribution;
+    technicalBreakdown: TechnicalBreakdown;
+    upgradeRecommendations: UpgradeRecommendation[];
+  }> {
+    return this.apiService.get<any>(`/analyzer/library/${libraryId}/quality-metrics`).pipe(
+      map(response => response.data)
+    );
+  }
+
+  /**
+   * Get upgrade recommendations for a library
+   */
+  getUpgradeRecommendations(libraryId: string): Observable<{
+    recommendations: UpgradeRecommendation[];
+    summary: {
+      totalItems: number;
+      upgradeOpportunities: number;
+      qualityDistribution: QualityDistribution;
+    };
+  }> {
+    return this.apiService.get<any>(`/analyzer/library/${libraryId}/upgrade-recommendations`).pipe(
+      map(response => response.data)
+    );
+  }
+
+  /**
+   * Get technical analysis for a specific file
+   */
+  getFileAnalysis(fileId: string): Observable<any> {
+    return this.apiService.get<any>(`/analyzer/file/${fileId}`).pipe(
+      map(response => response.data)
     );
   }
 
