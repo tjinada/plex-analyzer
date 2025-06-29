@@ -293,8 +293,8 @@ export class AnalyzerService {
         totalSize,
         totalItems,
         averageFileSize: totalItems > 0 ? totalSize / totalItems : 0,
-        libraryBreakdown: libraryBreakdown.sort((a, b) => b.size - a.size),
-        libraryCount: libraries.length
+        totalLibraries: libraries.length,
+        libraryBreakdown: libraryBreakdown.sort((a, b) => b.size - a.size)
       };
 
       cache.set(cacheKey, globalStats, this.CACHE_TTL);
