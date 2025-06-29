@@ -1,16 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../config/constants';
-import { analyzerService } from '../services/analyzer.service';
+import { analyzerService } from '../services/analyzer-factory';
 import { plexService } from '../services/plex.service';
+import { tautulliService } from '../services/tautulli.service';
+import { config } from '../config';
 import { ApiResponse } from '../models';
 
 export class LibraryController {
   /**
-   * Get all libraries with basic information
+   * Get all libraries with enhanced information (counts and sizes)
    */
   async getLibraries(_req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!plexService.isReady()) {
+      // Check if the appropriate service is ready based on data source
+      const dataSource = config.settings.dataSource;
+      const isServiceReady = dataSource === 'tautulli' 
+        ? tautulliService.isReady() 
+        : plexService.isReady();
+      
+      if (!isServiceReady) {
         res.status(HTTP_STATUS.SERVICE_UNAVAILABLE).json({
           success: false,
           error: {
@@ -22,11 +30,35 @@ export class LibraryController {
         return;
       }
 
-      const libraries = await analyzerService.getLibraries();
+      // Get basic library information
+      const basicLibraries = await analyzerService.getLibraries();
+      
+      // Enhance each library with actual item counts and sizes
+      const enhancedLibraries = await Promise.all(
+        basicLibraries.map(async (library) => {
+          try {
+            // Get actual library items to count them
+            const items = await plexService.getLibraryItems(library.id);
+            
+            // Get size analysis for total size
+            const sizeAnalysis = await analyzerService.getSizeAnalysis(library.id);
+            
+            return {
+              ...library,
+              itemCount: items.length,
+              totalSize: sizeAnalysis.totalSize
+            };
+          } catch (error) {
+            console.warn(`Failed to enhance library ${library.title}:`, error);
+            // Return original library data if enhancement fails
+            return library;
+          }
+        })
+      );
 
       const response: ApiResponse = {
         success: true,
-        data: libraries,
+        data: enhancedLibraries,
         timestamp: new Date().toISOString(),
       };
 
@@ -55,7 +87,13 @@ export class LibraryController {
         return;
       }
 
-      if (!plexService.isReady()) {
+      // Check if the appropriate service is ready based on data source
+      const dataSource = config.settings.dataSource;
+      const isServiceReady = dataSource === 'tautulli' 
+        ? tautulliService.isReady() 
+        : plexService.isReady();
+      
+      if (!isServiceReady) {
         res.status(HTTP_STATUS.SERVICE_UNAVAILABLE).json({
           success: false,
           error: {
@@ -115,7 +153,13 @@ export class LibraryController {
         return;
       }
 
-      if (!plexService.isReady()) {
+      // Check if the appropriate service is ready based on data source
+      const dataSource = config.settings.dataSource;
+      const isServiceReady = dataSource === 'tautulli' 
+        ? tautulliService.isReady() 
+        : plexService.isReady();
+      
+      if (!isServiceReady) {
         res.status(HTTP_STATUS.SERVICE_UNAVAILABLE).json({
           success: false,
           error: {
@@ -170,7 +214,13 @@ export class LibraryController {
         return;
       }
 
-      if (!plexService.isReady()) {
+      // Check if the appropriate service is ready based on data source
+      const dataSource = config.settings.dataSource;
+      const isServiceReady = dataSource === 'tautulli' 
+        ? tautulliService.isReady() 
+        : plexService.isReady();
+      
+      if (!isServiceReady) {
         res.status(HTTP_STATUS.SERVICE_UNAVAILABLE).json({
           success: false,
           error: {
