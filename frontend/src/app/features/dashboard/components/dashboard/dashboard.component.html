@@ -44,6 +44,34 @@
       </div>
     </div>
 
+    <!-- Content Management Cards -->
+    <div class="content-management-section" *ngIf="showContentManagementCards">
+      <div class="section-header">
+        <h2>Content Management</h2>
+        <div class="service-status" *ngIf="servicesStatus">
+          <div class="status-indicator" 
+               [class.connected]="servicesStatus.radarr.connected"
+               [class.disconnected]="!servicesStatus.radarr.connected"
+               matTooltip="Radarr: {{ servicesStatus.radarr.connected ? 'Connected' : 'Disconnected' }}">
+            <mat-icon>movie</mat-icon>
+            <span>Radarr</span>
+          </div>
+          <div class="status-indicator"
+               [class.connected]="servicesStatus.sonarr.connected" 
+               [class.disconnected]="!servicesStatus.sonarr.connected"
+               matTooltip="Sonarr: {{ servicesStatus.sonarr.connected ? 'Connected' : 'Disconnected' }}">
+            <mat-icon>tv</mat-icon>
+            <span>Sonarr</span>
+          </div>
+        </div>
+      </div>
+      <div class="content-cards-grid">
+        <app-wanted-content-card></app-wanted-content-card>
+        <app-missing-content-card></app-missing-content-card>
+        <app-download-queue-card></app-download-queue-card>
+      </div>
+    </div>
+
     <!-- Libraries Grid -->
     <div class="libraries-section">
       <h2>Libraries</h2>

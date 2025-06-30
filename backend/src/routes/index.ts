@@ -4,6 +4,9 @@ import { libraryController } from '../controllers/library.controller';
 import { statisticsController } from '../controllers/statistics.controller';
 import { analyzerController } from '../controllers/analyzer.controller';
 import { settingsController } from '../controllers/settings.controller';
+import radarrRoutes from './radarr.routes';
+import sonarrRoutes from './sonarr.routes';
+import contentRoutes from './content.routes';
 
 const router = Router();
 
@@ -58,5 +61,14 @@ router.get('/analyzer/file/:fileId', analyzerController.getFileAnalysis.bind(ana
 // Settings routes
 router.get('/settings', settingsController.getSettings.bind(settingsController));
 router.put('/settings', settingsController.updateSettings.bind(settingsController));
+
+// Radarr routes
+router.use('/radarr', radarrRoutes);
+
+// Sonarr routes  
+router.use('/sonarr', sonarrRoutes);
+
+// Content management routes (combined Radarr/Sonarr data)
+router.use('/content', contentRoutes);
 
 export default router;
