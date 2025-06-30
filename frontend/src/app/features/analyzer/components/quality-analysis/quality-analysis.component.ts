@@ -9,9 +9,12 @@ import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
+import { ChartConfiguration } from 'chart.js';
 
 import { AnalyzerService } from '../../../../core/services/analyzer.service';
 import { LoadingComponent } from '../../../../shared';
+import { ChartService, ChartDataPoint } from '../../../../shared/services/chart.service';
+import { ChartComponent } from '../../../../shared/components/chart/chart.component';
 
 export interface QualityAnalysis {
   qualityProfiles: QualityProfile[];
@@ -52,7 +55,8 @@ export interface CodecData {
     MatSelectModule,
     MatFormFieldModule,
     FormsModule,
-    LoadingComponent
+    LoadingComponent,
+    ChartComponent
   ],
   templateUrl: './quality-analysis.component.html',
   styleUrl: './quality-analysis.component.scss'
@@ -66,9 +70,14 @@ export class QualityAnalysisComponent implements OnInit, OnChanges {
   resolutionColumns: string[] = ['resolution', 'count', 'percentage'];
   codecColumns: string[] = ['codec', 'count', 'percentage'];
 
+  // Chart configurations
+  resolutionChart: ChartConfiguration | null = null;
+  codecChart: ChartConfiguration | null = null;
+
   constructor(
     private analyzerService: AnalyzerService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private chartService: ChartService
   ) {}
 
   ngOnInit(): void {
@@ -87,11 +96,34 @@ export class QualityAnalysisComponent implements OnInit, OnChanges {
     try {
       const response = await this.analyzerService.getQualityAnalysis(this.libraryId, -1).toPromise();
       this.qualityData = response?.data || null;
+      this.generateCharts();
     } catch (error) {
       console.error('Failed to load quality analysis:', error);
       this.snackBar.open('Failed to load quality analysis', 'Close', { duration: 5000 });
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  private generateCharts(): void {
+    if (!this.qualityData) return;
+
+    // Resolution distribution chart
+    if (this.qualityData.resolutionDistribution && this.qualityData.resolutionDistribution.length > 0) {
+      const resolutionData: ChartDataPoint[] = this.qualityData.resolutionDistribution.map(item => ({
+        label: item.resolution,
+        value: item.count
+      }));
+      this.resolutionChart = this.chartService.createDonutChart(resolutionData, 'Resolution Distribution', 'resolution');
+    }
+
+    // Codec distribution chart
+    if (this.qualityData.codecDistribution && this.qualityData.codecDistribution.length > 0) {
+      const codecData: ChartDataPoint[] = this.qualityData.codecDistribution.map(item => ({
+        label: item.codec,
+        value: item.count
+      }));
+      this.codecChart = this.chartService.createBarChart(codecData, 'Codec Distribution', true);
     }
   }
 

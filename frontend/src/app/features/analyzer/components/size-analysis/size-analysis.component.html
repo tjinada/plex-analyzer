@@ -21,6 +21,14 @@
         <mat-icon>{{ showEpisodeView ? 'tv' : 'list' }}</mat-icon>
         {{ toggleButtonLabel }}
       </button>
+
+      <button mat-icon-button 
+              (click)="toggleFilters()" 
+              [disabled]="isLoading" 
+              matTooltip="Toggle filters"
+              [class.active]="showFilters">
+        <mat-icon>filter_list</mat-icon>
+      </button>
       
       <button mat-icon-button (click)="refresh()" [disabled]="isLoading" matTooltip="Refresh">
         <mat-icon>refresh</mat-icon>
@@ -43,6 +51,16 @@
     <p>{{ error }}</p>
     <button mat-raised-button color="primary" (click)="refresh()">Retry</button>
   </div>
+
+  <!-- Filter Bar -->
+  <app-filter-bar *ngIf="showFilters && !isLoading"
+                  [fileTypeOptions]="filterOptions.fileType"
+                  [qualityTierOptions]="filterOptions.qualityTier"
+                  [resolutionOptions]="filterOptions.resolution"
+                  [codecOptions]="filterOptions.codec"
+                  [disabled]="isLoading"
+                  (filtersChanged)="onFiltersChanged($event)">
+  </app-filter-bar>
 
   <!-- Content -->
   <div *ngIf="(sizeAnalysis || enhancedAnalysis) && !isLoading" class="analysis-content">
@@ -68,10 +86,37 @@
       </mat-card>
     </div>
 
-    <!-- Size Distribution -->
+    <!-- Charts Section -->
+    <div class="charts-section" *ngIf="(sizeDistributionChart || qualityDistributionChart)">
+      <div class="charts-grid">
+        
+        <!-- Size Distribution Chart -->
+        <mat-card class="chart-card" *ngIf="sizeDistributionChart">
+          <mat-card-header>
+            <mat-card-title>Size Distribution</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <app-chart [config]="sizeDistributionChart" height="300px"></app-chart>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Quality Distribution Chart (Enhanced View) -->
+        <mat-card class="chart-card" *ngIf="qualityDistributionChart && showEnhancedView">
+          <mat-card-header>
+            <mat-card-title>Quality Distribution</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <app-chart [config]="qualityDistributionChart" height="300px"></app-chart>
+          </mat-card-content>
+        </mat-card>
+
+      </div>
+    </div>
+
+    <!-- Size Distribution Table -->
     <mat-card class="distribution-card" *ngIf="getCurrentAnalysis()?.sizeDistribution && getCurrentAnalysis()!.sizeDistribution.length > 0">
       <mat-card-header>
-        <mat-card-title>Size Distribution</mat-card-title>
+        <mat-card-title>Size Distribution Details</mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <div class="distribution-grid">
@@ -218,6 +263,9 @@
                   <div class="tech-row">
                     <span class="bit-depth-badge" [class]="'depth-' + file.bitDepth">
                       {{ file.bitDepth }}-bit
+                    </span>
+                    <span *ngIf="file.hdrFormat" class="hdr-badge" [class]="getHDRClass(file.hdrFormat)">
+                      {{ file.hdrFormat }}
                     </span>
                     <span class="bitrate-info" matTooltip="Video Bitrate">
                       {{ formatBitrate(file.videoBitrate) }}

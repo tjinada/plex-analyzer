@@ -1,4 +1,4 @@
-import { TautulliAnalyzerService, MediaFile, SizeAnalysis } from './tautulli-analyzer.service';
+import { MediaFile, SizeAnalysis } from './tautulli-analyzer.service';
 import { MediaInfoService, VideoTechnicalDetails, AudioTechnicalDetails, ContainerDetails } from './mediainfo.service';
 import { QualityScorerService, QualityTier, QualityScoreComponents } from './quality-scorer.service';
 import { cache } from '../utils/cache.util';
@@ -225,14 +225,25 @@ export class EnhancedAnalyzerService {
       // Extract technical details from file path or MediaInfo
       const technicalDetails = await this.extractTechnicalDetails(file);
       // Use both filePath and title for source detection
-      const sourceType = this.detectSourceType(file.filePath === 'Unknown' ? file.title : file.filePath);
-      const releaseGroup = this.extractReleaseGroup(file.filePath === 'Unknown' ? file.title : file.filePath);
+      const searchText = file.filePath === 'Unknown' ? file.title : file.filePath;
+      const sourceType = this.detectSourceType(searchText);
+      const releaseGroup = this.extractReleaseGroup(searchText);
+      const encodingTool = this.extractEncodingTool(searchText);
       
-      // Calculate quality score
+      // Determine content type for resolution scoring
+      const contentType: 'movie' | 'episode' = file.type === 'episode' ? 'episode' : 'movie';
+      
+      // Calculate quality score with all parameters
       const qualityData = this.qualityScorer.calculateQualityScore(
         technicalDetails.video,
         file.fileSize,
-        sourceType
+        sourceType,
+        technicalDetails.audio,
+        encodingTool,
+        searchText,
+        false, // TODO: Extract multiple audio tracks from Plex data
+        false, // TODO: Extract subtitle info from Plex data
+        contentType
       );
 
       const enhancedFile: EnhancedMediaFile = {
@@ -256,7 +267,7 @@ export class EnhancedAnalyzerService {
         // Source info
         sourceType,
         releaseGroup,
-        encodingTool: this.extractEncodingTool(file.filePath === 'Unknown' ? file.title : file.filePath),
+        encodingTool,
         
         // Quality scoring
         qualityScore: qualityData.totalScore,
@@ -286,16 +297,208 @@ export class EnhancedAnalyzerService {
     audio: AudioTechnicalDetails;
     container: ContainerDetails;
   }> {
-    // Try MediaInfo first (if available)
+    // First, try to extract from Plex Media data (most accurate)
+    const plexMediaData = this.extractFromPlexMedia(file);
+    if (plexMediaData) {
+      console.log(`[EnhancedAnalyzerService] Using Plex Media data for ${file.title}`);
+      return plexMediaData;
+    }
+
+    // Try MediaInfo if available
     if (file.filePath && file.filePath !== 'Unknown') {
       const mediaInfoData = await this.mediaInfoService.analyzeFile(file.filePath);
       if (mediaInfoData) {
+        console.log(`[EnhancedAnalyzerService] Using MediaInfo data for ${file.title}`);
         return mediaInfoData;
       }
     }
 
-    // Fallback to file name parsing and existing Plex data
+    // Fallback to file name parsing
+    console.log(`[EnhancedAnalyzerService] Using filename parsing fallback for ${file.title}`);
     return this.extractFromExistingData(file);
+  }
+
+  /**
+   * Extract technical details from Plex Media data (most accurate)
+   */
+  private extractFromPlexMedia(file: MediaFile): {
+    video: VideoTechnicalDetails;
+    audio: AudioTechnicalDetails;
+    container: ContainerDetails;
+  } | null {
+    // Check if we have Plex Media data
+    const media = (file as any).Media;
+    if (!media || !Array.isArray(media) || media.length === 0) {
+      return null;
+    }
+
+    // Use the first media stream (most movies/episodes have one)
+    const mediaStream = media[0];
+    const part = mediaStream.Part?.[0]; // Get first part
+    
+    if (!mediaStream) {
+      return null;
+    }
+
+
+    // Extract video technical details
+    const videoBitrate = parseInt(mediaStream.bitrate || '0', 10) * 1000; // Convert kbps to bps
+    const resolution = { 
+      width: parseInt(mediaStream.width || '0', 10), 
+      height: parseInt(mediaStream.height || '0', 10) 
+    };
+    
+    // Extract bit depth from video profile (e.g., "main 10" -> 10-bit)
+    let bitDepth = 8; // Default
+    if (mediaStream.videoProfile) {
+      const profileLower = mediaStream.videoProfile.toLowerCase();
+      if (profileLower.includes('10')) bitDepth = 10;
+      else if (profileLower.includes('12')) bitDepth = 12;
+    }
+
+    // Determine HDR format from various Plex fields
+    let hdrFormat: string | undefined;
+    
+    // Check for explicit HDR fields first
+    if (mediaStream.dolbyVision === true || mediaStream.dolbyVision === 1) {
+      hdrFormat = 'Dolby Vision';
+    }
+    else if (mediaStream.hdr === true || mediaStream.hdr === 1) {
+      hdrFormat = 'HDR10';
+    }
+    else if (mediaStream.videoDynamicRange?.toLowerCase().includes('dolby')) {
+      hdrFormat = 'Dolby Vision';
+    }
+    else if (mediaStream.videoDynamicRange?.toLowerCase().includes('hdr')) {
+      hdrFormat = 'HDR10';
+    }
+    // Check for Dolby Vision in text fields (most specific)
+    else if (mediaStream.videoProfile?.toLowerCase().includes('dv') || 
+        mediaStream.videoProfile?.toLowerCase().includes('dolby') ||
+        mediaStream.displayTitle?.toLowerCase().includes('dolby vision') ||
+        mediaStream.displayTitle?.toLowerCase().includes('dovi')) {
+      hdrFormat = 'Dolby Vision';
+    }
+    // Check for HDR10+ 
+    else if (mediaStream.displayTitle?.toLowerCase().includes('hdr10+') ||
+             mediaStream.videoProfile?.toLowerCase().includes('hdr10+') ||
+             mediaStream.videoDynamicRange?.toLowerCase().includes('hdr10+')) {
+      hdrFormat = 'HDR10+';
+    }
+    // Check for standard HDR10
+    else if (mediaStream.displayTitle?.toLowerCase().includes('hdr10') ||
+             mediaStream.displayTitle?.toLowerCase().includes('hdr') ||
+             mediaStream.colorPrimaries === 'bt2020' || 
+             mediaStream.videoColourPrimaries === 'bt2020' ||
+             mediaStream.colorSpace === 'bt2020nc' ||
+             mediaStream.transferCharacteristics === 'smpte2084' ||
+             mediaStream.videoTransferCharacteristics === 'smpte2084') {
+      hdrFormat = 'HDR10';
+    }
+    // Check for HLG
+    else if (mediaStream.transferCharacteristics === 'arib-std-b67' ||
+             mediaStream.videoTransferCharacteristics === 'arib-std-b67' ||
+             mediaStream.displayTitle?.toLowerCase().includes('hlg') ||
+             mediaStream.videoDynamicRange?.toLowerCase().includes('hlg')) {
+      hdrFormat = 'HLG';
+    }
+    
+    // If no HDR format detected from Plex metadata, check the filename
+    if (!hdrFormat && part?.file) {
+      const filename = part.file.toLowerCase();
+      
+      // Check for Dolby Vision indicators
+      if (filename.includes('[dv') || filename.includes('dolby.vision') || 
+          filename.includes('dovi') || filename.includes('dolbyvision')) {
+        // Check if it's DV + HDR10
+        if (filename.includes('hdr10]') || filename.includes('hdr10 ') || 
+            filename.includes('dv hdr10') || filename.includes('dv.hdr10')) {
+          hdrFormat = 'Dolby Vision / HDR10';
+        } else {
+          hdrFormat = 'Dolby Vision';
+        }
+      }
+      // Check for HDR10+
+      else if (filename.includes('hdr10+') || filename.includes('hdr10plus')) {
+        hdrFormat = 'HDR10+';
+      }
+      // Check for standard HDR10
+      else if (filename.includes('hdr10') || filename.includes('[hdr]') || 
+               filename.includes('.hdr.')) {
+        hdrFormat = 'HDR10';
+      }
+      // Check for HLG
+      else if (filename.includes('hlg')) {
+        hdrFormat = 'HLG';
+      }
+      
+    }
+
+    // Estimate audio bitrate and channels
+    const audioChannels = parseInt(mediaStream.audioChannels || '2', 10);
+    const audioBitrate = this.estimateAudioBitrateFromCodec(
+      mediaStream.audioCodec || 'unknown', 
+      audioChannels
+    );
+
+    // Calculate container duration and overall bitrate
+    const duration = parseInt(mediaStream.duration || part?.duration || '0', 10) / 1000; // Convert ms to seconds
+    const fileSize = parseInt(part?.size || '0', 10);
+    const overallBitrate = duration > 0 && fileSize > 0 ? (fileSize * 8) / duration : 0;
+
+    return {
+      video: {
+        codec: mediaStream.videoCodec || 'Unknown',
+        profile: mediaStream.videoProfile || 'Unknown',
+        level: this.estimateLevel(resolution),
+        bitDepth: bitDepth,
+        colorSpace: mediaStream.colorSpace || this.estimateColorSpace(''),
+        colorRange: mediaStream.colorRange || 'Limited',
+        chromaSubsampling: mediaStream.chromaSubsampling || '4:2:0',
+        frameRate: parseFloat(mediaStream.videoFrameRate || '23.976'),
+        hdrFormat: hdrFormat,
+        scanType: 'Progressive', // Plex doesn't always provide this
+        bitrate: videoBitrate,
+        width: resolution.width,
+        height: resolution.height
+      },
+      audio: {
+        codec: mediaStream.audioCodec || 'Unknown',
+        channels: audioChannels,
+        channelLayout: this.getChannelLayout(audioChannels),
+        sampleRate: parseInt(mediaStream.audioSampleRate || '48000', 10),
+        bitDepth: 16, // Plex doesn't always provide audio bit depth
+        bitrate: audioBitrate
+      },
+      container: {
+        format: mediaStream.container || part?.container || 'Unknown',
+        size: fileSize,
+        duration: duration,
+        overallBitrate: overallBitrate
+      }
+    };
+  }
+
+  /**
+   * Estimate audio bitrate based on codec and channel count
+   */
+  private estimateAudioBitrateFromCodec(codec: string, channels: number): number {
+    const codecLower = codec.toLowerCase();
+    let baseBitrate = 128; // Default for stereo AAC
+    
+    if (codecLower.includes('truehd') || codecLower.includes('atmos')) {
+      baseBitrate = channels >= 8 ? 3000 : 1500;
+    } else if (codecLower.includes('dts-hd') || codecLower.includes('dts.hd')) {
+      baseBitrate = channels >= 8 ? 1500 : 768;
+    } else if (codecLower.includes('dts')) {
+      baseBitrate = channels >= 6 ? 1509 : 768;
+    } else if (codecLower.includes('ac3') || codecLower.includes('eac3')) {
+      baseBitrate = channels >= 6 ? 640 : 448;
+    } else if (codecLower.includes('aac')) {
+      baseBitrate = channels >= 6 ? 256 : 128;
+    }
+    
+    return baseBitrate * 1000; // Convert to bps
   }
 
   /**

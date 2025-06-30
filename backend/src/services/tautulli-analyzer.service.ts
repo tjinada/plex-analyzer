@@ -244,10 +244,9 @@ export class TautulliAnalyzerService {
       const allMediaInfo = await tautulliService.getLibraryMediaInfo(libraryId, {
         orderColumn: 'file_size',
         orderDir: 'desc',
-        length: 10000,
-        // Try to get ungrouped data
-        grouping: 0
-      });
+        length: 10000
+        // Note: grouping parameter removed as it's not part of the interface
+      } as any);
       
       items = allMediaInfo.data || [];
       console.log(`[TautulliAnalyzerService] Retrieved ${items.length} items with grouping=0`);

@@ -14,6 +14,33 @@
       <app-loading *ngIf="isLoading"></app-loading>
       
       <div *ngIf="!isLoading && qualityData" class="analysis-content">
+
+        <!-- Charts Section -->
+        <div class="charts-section" *ngIf="(resolutionChart || codecChart)">
+          <div class="charts-grid">
+            
+            <!-- Resolution Distribution Chart -->
+            <mat-card class="chart-card" *ngIf="resolutionChart">
+              <mat-card-header>
+                <mat-card-title>Resolution Distribution</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <app-chart [config]="resolutionChart" height="300px"></app-chart>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Codec Distribution Chart -->
+            <mat-card class="chart-card" *ngIf="codecChart">
+              <mat-card-header>
+                <mat-card-title>Codec Distribution</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <app-chart [config]="codecChart" height="300px"></app-chart>
+              </mat-card-content>
+            </mat-card>
+
+          </div>
+        </div>
         <!-- Resolution Distribution -->
         <div class="analysis-section">
           <h3>Resolution Distribution</h3>

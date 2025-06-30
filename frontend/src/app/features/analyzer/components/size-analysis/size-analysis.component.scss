@@ -19,6 +19,11 @@
     display: flex;
     gap: 1rem;
     align-items: center;
+
+    button.active {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
   }
 }
 
@@ -195,6 +200,23 @@
   }
 }
 
+// Charts section styles
+.charts-section {
+  margin-bottom: 1.5rem;
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem;
+  }
+
+  .chart-card {
+    mat-card-content {
+      padding-top: 1rem;
+    }
+  }
+}
+
 // Enhanced view styles
 .enhanced-overview {
   .overview-grid {
@@ -352,8 +374,31 @@
       border-radius: 3px;
       font-size: 0.7rem;
       font-weight: 500;
-      background: #ff9800;
-      color: white;
+      
+      &.hdr-dolby-vision {
+        background: linear-gradient(135deg, #7c4dff 0%, #651fff 100%);
+        color: white;
+      }
+      
+      &.hdr-hdr10plus {
+        background-color: #ff6f00;
+        color: white;
+      }
+      
+      &.hdr-hdr10 {
+        background-color: #2196f3;
+        color: white;
+      }
+      
+      &.hdr-hlg {
+        background-color: #4caf50;
+        color: white;
+      }
+      
+      &.hdr-standard {
+        background-color: #ff9800;
+        color: white;
+      }
     }
 
     .source-badge {

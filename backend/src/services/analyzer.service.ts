@@ -608,8 +608,10 @@ export class AnalyzerService {
                 resolution: this.extractResolution(media),
                 codec: this.extractCodec(media),
                 year: item.year || undefined,
-                type: item.type === 'movie' ? 'movie' : 'episode'
-              };
+                type: item.type === 'movie' ? 'movie' : 'episode',
+                // Include raw Plex Media data for enhanced analyzer
+                Media: item.Media
+              } as any;
               mediaFiles.push(file);
               console.log(`[AnalyzerService] Added file:`, file);
             }
@@ -895,6 +897,16 @@ export class AnalyzerService {
       // Use the show's year (from first episode)
       const year = showEpisodes[0]?.year;
       
+      // For shows, create synthetic Media data based on episodes for enhanced analysis
+      const firstEpisodeMedia = (showEpisodes[0] as any)?.Media?.[0];
+      const syntheticMedia = firstEpisodeMedia ? [{
+        ...firstEpisodeMedia,
+        // Use aggregated values where appropriate
+        container: mostCommonCodec,
+        videoCodec: mostCommonCodec,
+        bitrate: Math.round(totalSize * 8 / (showEpisodes.length * 3600)), // Rough estimate
+      }] : undefined;
+
       return {
         id: `show-${showName.replace(/[^a-zA-Z0-9]/g, '-')}`, // Generate show ID
         title: showName,
@@ -905,8 +917,10 @@ export class AnalyzerService {
         year: year,
         type: 'show' as const,
         showName: showName,
-        episodeCount: showEpisodes.length
-      };
+        episodeCount: showEpisodes.length,
+        // Include Media data for enhanced analysis
+        Media: syntheticMedia
+      } as any;
     });
     
     // Return aggregated shows combined with movies

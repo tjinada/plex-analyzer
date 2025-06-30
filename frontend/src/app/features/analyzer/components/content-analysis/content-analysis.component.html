@@ -14,6 +14,43 @@
       <app-loading *ngIf="isLoading"></app-loading>
       
       <div *ngIf="!isLoading && contentData" class="analysis-content">
+
+        <!-- Charts Section -->
+        <div class="charts-section" *ngIf="(genreChart || yearChart || runtimeChart)">
+          <div class="charts-grid">
+            
+            <!-- Genre Distribution Chart -->
+            <mat-card class="chart-card" *ngIf="genreChart">
+              <mat-card-header>
+                <mat-card-title>Top Genres</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <app-chart [config]="genreChart" height="300px"></app-chart>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Year Distribution Chart -->
+            <mat-card class="chart-card" *ngIf="yearChart">
+              <mat-card-header>
+                <mat-card-title>Release Years</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <app-chart [config]="yearChart" height="300px"></app-chart>
+              </mat-card-content>
+            </mat-card>
+
+            <!-- Runtime Distribution Chart -->
+            <mat-card class="chart-card" *ngIf="runtimeChart">
+              <mat-card-header>
+                <mat-card-title>Runtime Distribution</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <app-chart [config]="runtimeChart" height="300px"></app-chart>
+              </mat-card-content>
+            </mat-card>
+
+          </div>
+        </div>
         <!-- Top Genres -->
         <div class="analysis-section">
           <h3>Top Genres</h3>

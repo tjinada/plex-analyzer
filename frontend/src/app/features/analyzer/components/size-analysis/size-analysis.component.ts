@@ -12,6 +12,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { FormsModule } from '@angular/forms';
+import { ChartConfiguration } from 'chart.js';
 import { 
   AnalyzerService, 
   SizeAnalysis, 
@@ -21,6 +22,10 @@ import {
   QualityTier 
 } from '../../../../core/services/analyzer.service';
 import { PaginatedResponse, PaginationMeta } from '../../../../models/pagination.model';
+import { ChartService, ChartDataPoint } from '../../../../shared/services/chart.service';
+import { ChartComponent } from '../../../../shared/components/chart/chart.component';
+import { FilterService, FilterState } from '../../../../shared/services/filter.service';
+import { FilterBarComponent, FilterOption } from '../../../../shared/components/filter-bar/filter-bar.component';
 
 @Component({
   selector: 'app-size-analysis',
@@ -38,7 +43,9 @@ import { PaginatedResponse, PaginationMeta } from '../../../../models/pagination
     MatSlideToggleModule,
     MatTooltipModule,
     MatChipsModule,
-    FormsModule
+    FormsModule,
+    ChartComponent,
+    FilterBarComponent
   ],
   templateUrl: './size-analysis.component.html',
   styleUrl: './size-analysis.component.scss'
@@ -64,8 +71,32 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
   basicColumns: string[] = ['title', 'fileSize', 'resolution', 'codec', 'filePath'];
   enhancedColumns: string[] = ['title', 'fileSize', 'technical', 'quality'];
   displayedColumns: string[] = this.basicColumns;
+
+  // Chart configurations
+  sizeDistributionChart: ChartConfiguration | null = null;
+  qualityDistributionChart: ChartConfiguration | null = null;
+
+  // Filtering
+  allDisplayData: (MediaFile | EnhancedMediaFile)[] = []; // All data before filtering
+  filteredDisplayData: (MediaFile | EnhancedMediaFile)[] = []; // Filtered data
+  showFilters = false;
+  filterOptions: {
+    fileType: FilterOption[];
+    qualityTier: FilterOption[];
+    resolution: FilterOption[];
+    codec: FilterOption[];
+  } = {
+    fileType: [],
+    qualityTier: [],
+    resolution: [],
+    codec: []
+  };
   
-  constructor(private analyzerService: AnalyzerService) {}
+  constructor(
+    private analyzerService: AnalyzerService,
+    private chartService: ChartService,
+    private filterService: FilterService
+  ) {}
 
   ngOnInit(): void {
     this.loadSizeAnalysis();
@@ -164,14 +195,175 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
     const currentAnalysis = this.getCurrentAnalysis();
     
     if (!currentAnalysis) {
+      this.allDisplayData = [];
+      this.filteredDisplayData = [];
       this.currentDisplayData = [];
+      this.sizeDistributionChart = null;
+      this.qualityDistributionChart = null;
       return;
     }
 
     if (this.showEpisodeView && currentAnalysis.episodeBreakdown) {
-      this.currentDisplayData = currentAnalysis.episodeBreakdown;
+      this.allDisplayData = currentAnalysis.episodeBreakdown;
     } else {
-      this.currentDisplayData = currentAnalysis.largestFiles;
+      this.allDisplayData = currentAnalysis.largestFiles;
+    }
+
+    // Update filter options
+    this.updateFilterOptions();
+
+    // Apply filters
+    this.applyFilters();
+
+    // Generate charts
+    this.generateCharts();
+  }
+
+  /**
+   * Update filter options based on current data
+   */
+  private updateFilterOptions(): void {
+    if (this.allDisplayData.length === 0) return;
+
+    // File type options
+    const fileTypeCounts = this.getCountsByProperty(this.allDisplayData, 'type');
+    this.filterOptions.fileType = Object.entries(fileTypeCounts).map(([value, count]) => ({
+      value,
+      label: value.charAt(0).toUpperCase() + value.slice(1),
+      count
+    }));
+
+    // Resolution options
+    const resolutionCounts = this.getCountsByProperty(this.allDisplayData, 'resolution');
+    this.filterOptions.resolution = Object.entries(resolutionCounts).map(([value, count]) => ({
+      value,
+      label: value,
+      count
+    }));
+
+    // Codec options
+    const codecCounts = this.getCountsByProperty(this.allDisplayData, 'codec');
+    this.filterOptions.codec = Object.entries(codecCounts).map(([value, count]) => ({
+      value,
+      label: value,
+      count
+    }));
+
+    // Quality tier options (enhanced view only)
+    if (this.showEnhancedView && this.allDisplayData.length > 0 && this.isEnhancedFile(this.allDisplayData[0])) {
+      const qualityTierCounts = this.getCountsByProperty(this.allDisplayData as EnhancedMediaFile[], 'qualityTier');
+      this.filterOptions.qualityTier = Object.entries(qualityTierCounts).map(([value, count]) => ({
+        value,
+        label: value,
+        count
+      }));
+    } else {
+      this.filterOptions.qualityTier = [];
+    }
+  }
+
+  /**
+   * Apply current filters to display data
+   */
+  applyFilters(): void {
+    const filters = this.filterService.getCurrentFilters();
+    
+    this.filteredDisplayData = this.allDisplayData.filter(item => {
+      // Search text filter
+      if (filters.searchText) {
+        const searchLower = filters.searchText.toLowerCase();
+        const searchableText = `${item.title} ${item.filePath}`.toLowerCase();
+        if (!searchableText.includes(searchLower)) {
+          return false;
+        }
+      }
+
+      // File type filter
+      if (filters.fileType.length > 0 && !filters.fileType.includes(item.type)) {
+        return false;
+      }
+
+      // Resolution filter
+      if (filters.resolution.length > 0 && !filters.resolution.includes(item.resolution)) {
+        return false;
+      }
+
+      // Codec filter
+      if (filters.codec.length > 0 && !filters.codec.includes(item.codec)) {
+        return false;
+      }
+
+      // Quality tier filter (enhanced view only)
+      if (filters.qualityTier.length > 0 && this.isEnhancedFile(item)) {
+        if (!filters.qualityTier.includes(item.qualityTier)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    this.currentDisplayData = this.filteredDisplayData;
+  }
+
+  /**
+   * Toggle filter visibility
+   */
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
+  }
+
+  /**
+   * Handle filter changes
+   */
+  onFiltersChanged(filters: FilterState): void {
+    this.applyFilters();
+  }
+
+  /**
+   * Get counts of items by property
+   */
+  private getCountsByProperty<T>(items: T[], property: keyof T): Record<string, number> {
+    return items.reduce((counts, item) => {
+      const value = String(item[property]);
+      counts[value] = (counts[value] || 0) + 1;
+      return counts;
+    }, {} as Record<string, number>);
+  }
+
+  /**
+   * Generate charts based on current data
+   */
+  private generateCharts(): void {
+    const currentAnalysis = this.getCurrentAnalysis();
+    if (!currentAnalysis) return;
+
+    // Size distribution chart
+    if (currentAnalysis.sizeDistribution && currentAnalysis.sizeDistribution.length > 0) {
+      const sizeData: ChartDataPoint[] = currentAnalysis.sizeDistribution.map(dist => ({
+        label: dist.range,
+        value: dist.count
+      }));
+      this.sizeDistributionChart = this.chartService.createPieChart(sizeData, 'File Size Distribution');
+    }
+
+    // Quality distribution chart (enhanced view only)
+    if (this.showEnhancedView && this.enhancedAnalysis) {
+      const qualityDist = this.getCurrentQualityDistribution();
+      const qualityData: ChartDataPoint[] = [
+        { label: 'Excellent', value: qualityDist.excellent, color: '#4CAF50' },
+        { label: 'Good', value: qualityDist.good, color: '#2196F3' },
+        { label: 'Fair', value: qualityDist.fair, color: '#FF9800' },
+        { label: 'Poor', value: qualityDist.poor, color: '#F44336' }
+      ].filter(item => item.value > 0);
+
+      if (qualityData.length > 0) {
+        this.qualityDistributionChart = this.chartService.createDonutChart(
+          qualityData, 
+          'Quality Distribution', 
+          'quality'
+        );
+      }
     }
   }
 
@@ -334,6 +526,18 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
     if (bitrate < 1000) return `${Math.round(bitrate)} bps`;
     if (bitrate < 1000000) return `${Math.round(bitrate / 1000)} Kbps`;
     return `${Math.round(bitrate / 1000000)} Mbps`;
+  }
+
+  /**
+   * Get HDR format color class
+   */
+  getHDRClass(hdrFormat: string): string {
+    const formatLower = hdrFormat.toLowerCase();
+    if (formatLower.includes('dolby vision')) return 'hdr-dolby-vision';
+    if (formatLower.includes('hdr10+')) return 'hdr-hdr10plus';
+    if (formatLower.includes('hdr10')) return 'hdr-hdr10';
+    if (formatLower.includes('hlg')) return 'hdr-hlg';
+    return 'hdr-standard';
   }
 
   private convertToCSV(files: (MediaFile | EnhancedMediaFile)[]): string {

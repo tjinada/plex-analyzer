@@ -1,4 +1,5 @@
-import { VideoTechnicalDetails } from './mediainfo.service';
+import { VideoTechnicalDetails, AudioTechnicalDetails } from './mediainfo.service';
+import { config } from '../config';
 
 export interface QualityScoreComponents {
   resolutionScore: number;    // 0-25
@@ -20,7 +21,13 @@ export class QualityScorerService {
   calculateQualityScore(
     mediaDetails: VideoTechnicalDetails,
     _fileSize: number,
-    sourceType?: string
+    sourceType?: string,
+    audioDetails?: AudioTechnicalDetails,
+    encodingTool?: string,
+    filePath?: string,
+    hasMultipleAudioTracks?: boolean,
+    hasSubtitles?: boolean,
+    contentType?: 'movie' | 'episode'
   ): {
     components: QualityScoreComponents;
     totalScore: number;
@@ -28,11 +35,17 @@ export class QualityScorerService {
     upgradeReasons: string[];
   } {
     const components: QualityScoreComponents = {
-      resolutionScore: this.calculateResolutionScore(mediaDetails.width, mediaDetails.height),
-      codecScore: this.calculateCodecScore(mediaDetails.codec, mediaDetails.profile),
+      resolutionScore: this.calculateResolutionScore(mediaDetails.width, mediaDetails.height, contentType),
+      codecScore: this.calculateCodecScore(mediaDetails.codec, mediaDetails.profile, encodingTool, filePath),
       bitrateScore: this.calculateBitrateScore(mediaDetails.bitrate, mediaDetails.width, mediaDetails.height, mediaDetails.codec),
-      sourceScore: this.calculateSourceScore(sourceType || 'Unknown'),
-      technicalScore: this.calculateTechnicalScore(mediaDetails)
+      sourceScore: this.calculateSourceScore(sourceType || 'Unknown', filePath),
+      technicalScore: this.calculateTechnicalScore(
+        mediaDetails, 
+        audioDetails, 
+        hasMultipleAudioTracks, 
+        hasSubtitles, 
+        mediaDetails.profile
+      )
     };
 
     const totalScore = Object.values(components).reduce((sum, score) => sum + score, 0);
@@ -42,125 +55,233 @@ export class QualityScorerService {
     return { components, totalScore, tier, upgradeReasons };
   }
 
-  private calculateResolutionScore(width: number, height: number): number {
+  private calculateResolutionScore(width: number, height: number, contentType?: 'movie' | 'episode'): number {
     const pixels = width * height;
+    const actualResolution = this.getResolutionCategory(pixels);
     
-    if (pixels >= 3840 * 2160) return 25;      // 4K UHD
-    if (pixels >= 1920 * 1080) return 20;      // 1080p
-    if (pixels >= 1280 * 720) return 15;       // 720p
-    if (pixels >= 720 * 576) return 10;        // 576p
-    if (pixels >= 720 * 480) return 5;         // 480p
-    return 0;                                   // < 480p
+    // Get user preferences
+    const preferences = config.settings.qualityPreferences;
+    let preferredResolution: string;
+    let acceptableResolutions: string[];
+    
+    if (contentType === 'episode') {
+      preferredResolution = preferences?.tvShows?.preferredResolution || '1080p';
+      acceptableResolutions = preferences?.tvShows?.acceptableResolutions || ['1080p', '720p'];
+    } else {
+      // Default to movie preferences for movies or unknown content type
+      preferredResolution = preferences?.movies?.preferredResolution || '4K';
+      acceptableResolutions = preferences?.movies?.acceptableResolutions || ['4K', '1080p'];
+    }
+    
+    // Score based on user preferences
+    if (actualResolution === preferredResolution) {
+      return 25; // Perfect match with user preference
+    } else if (acceptableResolutions.includes(actualResolution)) {
+      return 20; // Acceptable resolution
+    } else {
+      // Fall back to traditional scoring for non-preferred resolutions
+      if (pixels >= 3840 * 2160) return 15;      // 4K but not preferred
+      if (pixels >= 1920 * 1080) return 12;      // 1080p but not preferred
+      if (pixels >= 1280 * 720) return 8;        // 720p but not preferred
+      if (pixels >= 720 * 576) return 5;         // 576p
+      if (pixels >= 720 * 480) return 2;         // 480p
+      return 0;                                   // < 480p
+    }
+  }
+  
+  private getResolutionCategory(pixels: number): string {
+    if (pixels >= 3840 * 2160) return '4K';
+    if (pixels >= 1920 * 1080) return '1080p';
+    if (pixels >= 1280 * 720) return '720p';
+    if (pixels >= 720 * 576) return '576p';
+    if (pixels >= 720 * 480) return '480p';
+    return 'SD';
   }
 
-  private calculateCodecScore(codec: string, profile: string): number {
+  private calculateCodecScore(codec: string, profile: string, encodingTool?: string, filePath?: string): number {
     const codecLower = codec.toLowerCase();
+    let baseScore = 0;
     
-    if (codecLower.includes('av1')) return 20;
+    // Base codec scores
+    if (codecLower.includes('av1')) {
+      baseScore = 20;
+    } else if (codecLower.includes('h.265') || codecLower.includes('hevc')) {
+      baseScore = profile.toLowerCase().includes('main 10') ? 19 : 18;
+    } else if (codecLower.includes('vp9')) {
+      baseScore = 16;
+    } else if (codecLower.includes('h.264') || codecLower.includes('avc')) {
+      // Collapse H.264 profiles as they're often unreliable
+      baseScore = 14;
+    } else if (codecLower.includes('mpeg-4') || codecLower.includes('xvid')) {
+      baseScore = 8;
+    } else if (codecLower.includes('mpeg-2')) {
+      baseScore = 4;
+    }
+    
+    // Efficiency tuning bonus (1-2 points max)
+    let efficiencyBonus = 0;
+    const fileInfo = (encodingTool || '') + ' ' + (filePath || '');
+    const fileInfoLower = fileInfo.toLowerCase();
+    
+    // Check for efficient x265 presets
     if (codecLower.includes('h.265') || codecLower.includes('hevc')) {
-      return profile.toLowerCase().includes('main 10') ? 19 : 18;
+      if (fileInfoLower.includes('slow') || fileInfoLower.includes('slower') || fileInfoLower.includes('veryslow')) {
+        efficiencyBonus += 1;
+      }
+      if (fileInfoLower.includes('crf') && /crf[:\s]?1[0-9]\b/.test(fileInfoLower)) {
+        // CRF under 20
+        efficiencyBonus += 1;
+      }
     }
-    if (codecLower.includes('vp9')) return 16;
-    if (codecLower.includes('h.264') || codecLower.includes('avc')) {
-      if (profile.toLowerCase().includes('high')) return 15;
-      if (profile.toLowerCase().includes('main')) return 14;
-      return 12;
-    }
-    if (codecLower.includes('mpeg-4') || codecLower.includes('xvid')) return 8;
-    if (codecLower.includes('mpeg-2')) return 4;
-    return 0;
+    
+    return Math.min(20, baseScore + efficiencyBonus);
   }
 
   private calculateBitrateScore(bitrate: number, width: number, height: number, codec: string): number {
     const pixels = width * height;
     const codecEfficiency = this.getCodecEfficiency(codec);
     
-    // Calculate expected bitrate ranges (kbps)
+    // Calculate expected bitrate ranges (kbps) - adjusted for modern codec efficiency
     let optimalBitrate: number;
     let minAcceptable: number;
-    let maxReasonable: number;
+    let maxEfficient: number;
 
     if (pixels >= 3840 * 2160) {        // 4K
       optimalBitrate = 15000 / codecEfficiency;
       minAcceptable = 8000 / codecEfficiency;
-      maxReasonable = 25000 / codecEfficiency;
+      maxEfficient = 30000 / codecEfficiency;
     } else if (pixels >= 1920 * 1080) { // 1080p
       optimalBitrate = 8000 / codecEfficiency;
       minAcceptable = 4000 / codecEfficiency;
-      maxReasonable = 15000 / codecEfficiency;
+      maxEfficient = 20000 / codecEfficiency;
     } else if (pixels >= 1280 * 720) {  // 720p
       optimalBitrate = 4000 / codecEfficiency;
       minAcceptable = 2000 / codecEfficiency;
-      maxReasonable = 8000 / codecEfficiency;
+      maxEfficient = 10000 / codecEfficiency;
     } else {                             // < 720p
       optimalBitrate = 2000 / codecEfficiency;
       minAcceptable = 1000 / codecEfficiency;
-      maxReasonable = 4000 / codecEfficiency;
+      maxEfficient = 5000 / codecEfficiency;
     }
 
     const bitrateKbps = bitrate / 1000;
 
-    // Score based on how close to optimal
+    // Score based on efficiency and quality balance
     if (bitrateKbps >= optimalBitrate * 0.8 && bitrateKbps <= optimalBitrate * 1.2) {
-      return 20; // Optimal range
-    } else if (bitrateKbps >= minAcceptable && bitrateKbps <= maxReasonable) {
-      const distance = Math.abs(bitrateKbps - optimalBitrate) / optimalBitrate;
-      return Math.max(10, 20 - (distance * 15));
+      return 20; // Optimal efficiency range
     } else if (bitrateKbps < minAcceptable) {
-      return Math.max(0, 10 - ((minAcceptable - bitrateKbps) / minAcceptable * 10));
+      // Under-bitrate: significant quality penalty
+      const underPercent = bitrateKbps / minAcceptable;
+      return Math.max(0, Math.round(10 * underPercent));
+    } else if (bitrateKbps > maxEfficient) {
+      // Over-bitrate: minor efficiency penalty (high bitrate ≠ low quality)
+      return 17; // Only -3 points for being inefficient
+    } else if (bitrateKbps < optimalBitrate) {
+      // Between min and optimal
+      const range = optimalBitrate - minAcceptable;
+      const position = bitrateKbps - minAcceptable;
+      return Math.round(10 + (position / range) * 10);
     } else {
-      return Math.max(5, 15 - ((bitrateKbps - maxReasonable) / maxReasonable * 10));
+      // Between optimal and max efficient
+      const range = maxEfficient - optimalBitrate;
+      const position = bitrateKbps - optimalBitrate;
+      // Gradually decrease from 20 to 17
+      return Math.round(20 - (position / range) * 3);
     }
   }
 
   private getCodecEfficiency(codec: string): number {
     const codecLower = codec.toLowerCase();
-    if (codecLower.includes('av1')) return 2.0;
+    if (codecLower.includes('av1')) return 2.2;  // AV1 is even more efficient
     if (codecLower.includes('h.265') || codecLower.includes('hevc')) return 1.8;
     if (codecLower.includes('vp9')) return 1.6;
     if (codecLower.includes('h.264') || codecLower.includes('avc')) return 1.0;
     return 0.8; // Older codecs
   }
 
-  private calculateSourceScore(sourceType: string): number {
+  private calculateSourceScore(sourceType: string, filePath?: string): number {
     const sourceLower = sourceType.toLowerCase();
+    const filePathLower = (filePath || '').toLowerCase();
     
-    if (sourceLower.includes('blu-ray') && sourceLower.includes('remux')) return 15;
-    if (sourceLower.includes('blu-ray')) return 13;
-    if (sourceLower.includes('web-dl') || sourceLower.includes('webdl')) return 12;
+    // Blu-ray sources
+    if (sourceLower.includes('blu-ray') && sourceLower.includes('remux')) return 20;
+    if (sourceLower.includes('blu-ray') || sourceLower.includes('bluray')) return 17;
+    
+    // Web sources with quality tiers
+    if (sourceLower.includes('web-dl') || sourceLower.includes('webdl')) {
+      // Premium streaming sources
+      if (filePathLower.includes('amzn') || filePathLower.includes('amazon')) return 15;
+      if (filePathLower.includes('nf') || filePathLower.includes('netflix')) return 15;
+      if (filePathLower.includes('atvp') || filePathLower.includes('apple')) return 15;
+      if (filePathLower.includes('dsnp') || filePathLower.includes('disney')) return 14;
+      if (filePathLower.includes('itunes')) return 13;
+      return 12; // Generic WEB-DL
+    }
+    
+    // Web-DL Remux (non-BD remux)
+    if (sourceLower.includes('remux') && (sourceLower.includes('web') || filePathLower.includes('web'))) return 14;
+    
+    // Other sources
     if (sourceLower.includes('web-rip') || sourceLower.includes('webrip')) return 10;
     if (sourceLower.includes('hdtv')) return 8;
     if (sourceLower.includes('dvd')) return 5;
-    return 0; // Unknown source
+    if (sourceLower.includes('cam') || sourceLower.includes('screener')) return 2;
+    
+    return 6; // Unknown but present
   }
 
-  private calculateTechnicalScore(details: VideoTechnicalDetails): number {
+  private calculateTechnicalScore(
+    details: VideoTechnicalDetails, 
+    audioDetails?: AudioTechnicalDetails,
+    hasMultipleAudioTracks?: boolean,
+    hasSubtitles?: boolean,
+    profile?: string
+  ): number {
     let score = 0;
     
-    // HDR bonus
+    // HDR bonus (max 6 points to prevent over-scoring)
     if (details.hdrFormat) {
-      if (details.hdrFormat.includes('Dolby Vision')) score += 8;
-      else if (details.hdrFormat.includes('HDR10+')) score += 6;
-      else if (details.hdrFormat.includes('HDR10')) score += 5;
-      else if (details.hdrFormat.includes('HLG')) score += 4;
+      if (details.hdrFormat.includes('Dolby Vision')) score += 6;
+      else if (details.hdrFormat.includes('HDR10+')) score += 5;
+      else if (details.hdrFormat.includes('HDR10')) score += 4;
+      else if (details.hdrFormat.includes('HLG')) score += 3;
     }
     
-    // Bit depth bonus
-    if (details.bitDepth >= 10) score += 4;
-    else if (details.bitDepth === 8) score += 2;
+    // Bit depth bonus - but avoid double counting if already in profile
+    const profileHas10Bit = profile?.toLowerCase().includes('10');
+    if (details.bitDepth >= 10 && !profileHas10Bit) {
+      score += 2; // Reduced from 4 to avoid double counting
+    } else if (details.bitDepth === 8 && !profileHas10Bit) {
+      score += 1;
+    }
     
-    // Color space bonus
-    if (details.colorSpace.includes('2020')) score += 4;
-    else if (details.colorSpace.includes('P3')) score += 3;
-    else if (details.colorSpace.includes('709')) score += 2;
+    // Color space bonus (max 2 points)
+    if (details.colorSpace.includes('2020')) score += 2;
+    else if (details.colorSpace.includes('P3')) score += 1.5;
+    else if (details.colorSpace.includes('709')) score += 1;
+    
+    // Audio quality bonus (max 2 points)
+    if (audioDetails?.codec) {
+      const audioCodecLower = audioDetails.codec.toLowerCase();
+      if (audioCodecLower.includes('truehd') && audioCodecLower.includes('atmos')) score += 2;
+      else if (audioCodecLower.includes('dts-hd ma') || audioCodecLower.includes('dts:x')) score += 2;
+      else if (audioCodecLower.includes('truehd') || audioCodecLower.includes('dts-hd')) score += 1.5;
+      else if (audioCodecLower.includes('dts') || audioCodecLower.includes('ac3')) score += 1;
+    }
+    
+    // Multiple audio tracks bonus
+    if (hasMultipleAudioTracks) score += 0.5;
+    
+    // Subtitles bonus
+    if (hasSubtitles) score += 0.5;
     
     // Progressive scan bonus
-    if (details.scanType === 'Progressive') score += 2;
+    if (details.scanType === 'Progressive') score += 1;
     
     // Frame rate appropriateness
-    if (details.frameRate >= 23.9 && details.frameRate <= 60) score += 2;
+    if (details.frameRate >= 23.9 && details.frameRate <= 60) score += 1;
     
-    return Math.min(score, 20); // Cap at 20 points
+    return Math.min(score, 15); // Cap at 15 points
   }
 
   private determineQualityTier(score: number): QualityTier {
