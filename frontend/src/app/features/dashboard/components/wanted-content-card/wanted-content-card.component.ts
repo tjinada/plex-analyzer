@@ -8,12 +8,15 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialogModule, MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable, Subject, combineLatest } from 'rxjs';
 import { Inject } from '@angular/core';
 import { takeUntil, startWith, switchMap } from 'rxjs/operators';
 
 import { ContentManagementService } from '../../../../core/services/content-management.service';
 import { WantedMovie, WantedEpisode } from '../../../../models/arr-models';
+import { NotificationService } from '../../../../shared/services/notification.service';
+import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../../shared/components/confirmation-dialog/confirmation-dialog.component';
 
 @Component({
   selector: 'app-wanted-content-card',
@@ -591,7 +594,8 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     MatIconModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
-    MatCardModule
+    MatCardModule,
+    MatSnackBarModule
   ],
   template: `
     <div class="dialog-header">
@@ -604,9 +608,52 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     <mat-dialog-content class="dialog-content">
       <div class="items-count">
         <span>{{ data.items.length }} items</span>
+        <span *ngIf="data.type === 'episode' && getSeriesCount() > 1" class="series-count">
+          across {{ getSeriesCount() }} series
+        </span>
       </div>
       
-      <div class="items-list">
+      <!-- Series Grouped View for Episodes -->
+      <div *ngIf="data.type === 'episode' && getSeriesCount() > 1" class="series-grouped-view">
+        <div *ngFor="let seriesGroup of getGroupedBySeries()" class="series-group">
+          <div class="series-header">
+            <h4>{{ seriesGroup.seriesTitle }}</h4>
+            <span class="episode-count">{{ seriesGroup.episodes.length }} episodes</span>
+            <button mat-icon-button 
+                    (click)="triggerSeriesSearch(seriesGroup)"
+                    [disabled]="isSearching"
+                    matTooltip="Search entire series"
+                    color="accent">
+              <mat-icon>tv</mat-icon>
+            </button>
+          </div>
+          <div class="episodes-list">
+            <div *ngFor="let episode of seriesGroup.episodes" class="episode-item">
+              <div class="episode-info">
+                <div class="episode-title">S{{ episode.seasonNumber.toString().padStart(2, '0') }}E{{ episode.episodeNumber.toString().padStart(2, '0') }} - {{ episode.title || 'TBA' }}</div>
+                <div class="episode-subtitle">{{ getDisplaySubtitle(episode) }}</div>
+                <div class="episode-meta">
+                  <span class="meta-item" *ngIf="getDisplayYear(episode)">{{ getDisplayYear(episode) }}</span>
+                  <span class="meta-item" *ngIf="getDisplayQuality(episode)">{{ getDisplayQuality(episode) }}</span>
+                  <span class="meta-item status" [class]="getStatusClass(episode)">{{ getDisplayStatus(episode) }}</span>
+                </div>
+              </div>
+              <div class="episode-actions">
+                <button mat-icon-button 
+                        (click)="triggerSearch(episode)"
+                        [disabled]="isSearching"
+                        matTooltip="Search for this episode"
+                        color="primary">
+                  <mat-icon>search</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Regular List View for Movies or Single Series -->
+      <div *ngIf="data.type === 'movie' || data.type === 'queue' || (data.type === 'episode' && getSeriesCount() <= 1)" class="items-list">
         <div *ngFor="let item of data.items" class="content-item">
           <div class="item-info">
             <div class="item-title">{{ getDisplayTitle(item) }}</div>
@@ -620,6 +667,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
           <div class="item-actions">
             <button mat-icon-button 
                     (click)="triggerSearch(item)"
+                    [disabled]="isSearching"
                     matTooltip="Search for this item"
                     color="primary">
               <mat-icon>search</mat-icon>
@@ -630,10 +678,13 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     </mat-dialog-content>
     
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Close</button>
-      <button mat-raised-button color="primary" (click)="searchAll()">
-        <mat-icon>search</mat-icon>
-        Search All
+      <button mat-button mat-dialog-close [disabled]="isSearching">Close</button>
+      <button mat-raised-button 
+              color="primary" 
+              (click)="searchAll()"
+              [disabled]="isSearching || data.items.length === 0">
+        <mat-icon>{{ isSearching ? 'hourglass_empty' : 'search' }}</mat-icon>
+        {{ isSearching ? 'Searching...' : 'Search All' }}
       </button>
     </mat-dialog-actions>
   `,
@@ -665,6 +716,15 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
       font-size: 14px;
       color: #1976d2;
       font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .series-count {
+      color: #666;
+      font-weight: 400;
+      font-size: 12px;
     }
 
     .items-list {
@@ -742,12 +802,103 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     .item-actions {
       margin-left: 16px;
     }
+
+    /* Series Grouping Styles */
+    .series-grouped-view {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .series-group {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .series-header {
+      background-color: rgba(156, 39, 176, 0.1);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .series-header h4 {
+      margin: 0;
+      flex: 1;
+      font-size: 16px;
+      font-weight: 500;
+      color: #9c27b0;
+    }
+
+    .episode-count {
+      font-size: 12px;
+      color: #666;
+      background-color: rgba(156, 39, 176, 0.2);
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .episodes-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .episode-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background-color 0.2s ease;
+    }
+
+    .episode-item:last-child {
+      border-bottom: none;
+    }
+
+    .episode-item:hover {
+      background-color: #f9f9f9;
+    }
+
+    .episode-info {
+      flex: 1;
+    }
+
+    .episode-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .episode-subtitle {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    .episode-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .episode-actions {
+      margin-left: 12px;
+    }
   `]
 })
 export class ContentDetailDialogComponent {
+  public isSearching = false;
+
   constructor(
     public dialogRef: MatDialogRef<ContentDetailDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
+    @Inject(MAT_DIALOG_DATA) public data: any,
+    private dialog: MatDialog,
+    private notificationService: NotificationService
   ) {}
 
   getDisplayTitle(item: any): string {
@@ -815,26 +966,205 @@ export class ContentDetailDialogComponent {
   triggerSearch(item: any): void {
     if (this.data.type === 'queue') {
       // For queue items, we could cancel/remove instead of search
-      console.log('Queue item action - not yet implemented');
+      this.notificationService.info('Queue item management - not yet implemented');
       return;
     }
     
+    if (this.isSearching) {
+      this.notificationService.warning('Search already in progress');
+      return;
+    }
+
     const contentType = this.data.type === 'movie' ? 'movie' : 'episode';
+    const itemTitle = this.getDisplayTitle(item);
+    
+    // Show confirmation dialog
+    const confirmData: ConfirmationDialogData = {
+      title: `Search for ${contentType === 'movie' ? 'Movie' : 'Episode'}`,
+      message: `Do you want to trigger a manual search for:<br><strong>${itemTitle}</strong>`,
+      confirmText: 'Search',
+      cancelText: 'Cancel',
+      type: 'info',
+      icon: 'search'
+    };
+
+    const confirmRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '450px',
+      data: confirmData
+    });
+
+    confirmRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.performSearch(item, contentType, itemTitle);
+      }
+    });
+  }
+
+  private performSearch(item: any, contentType: string, itemTitle: string): void {
+    this.isSearching = true;
     const itemId = this.data.type === 'movie' ? item.id : [item.id];
+    
+    // Show loading notification
+    const loadingRef = this.notificationService.loading(`Searching for ${itemTitle}...`);
     
     this.data.contentManagementService.triggerSearch(contentType, itemId).subscribe({
       next: () => {
-        console.log(`Search triggered for ${contentType}:`, item.id);
+        loadingRef.dismiss();
+        this.isSearching = false;
+        this.notificationService.success(`Search triggered successfully for ${itemTitle}`);
       },
       error: (error: any) => {
+        loadingRef.dismiss();
+        this.isSearching = false;
         console.error(`Failed to trigger search for ${contentType}:`, error);
+        this.notificationService.error(`Failed to trigger search for ${itemTitle}`);
       }
     });
   }
 
   searchAll(): void {
-    // Trigger search for all items
-    console.log('Search all items - not yet implemented');
-    this.dialogRef.close();
+    if (this.isSearching) {
+      this.notificationService.warning('Search already in progress');
+      return;
+    }
+
+    const itemCount = this.data.items.length;
+    const contentType = this.data.type === 'movie' ? 'movies' : 'episodes';
+    
+    // Show confirmation dialog
+    const confirmData: ConfirmationDialogData = {
+      title: `Search All ${contentType === 'movies' ? 'Movies' : 'Episodes'}`,
+      message: `Do you want to trigger manual searches for all <strong>${itemCount} ${contentType}</strong>?<br><br>This may take some time and use significant system resources.`,
+      confirmText: `Search All (${itemCount})`,
+      cancelText: 'Cancel',
+      type: 'warning',
+      icon: 'search'
+    };
+
+    const confirmRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '500px',
+      data: confirmData
+    });
+
+    confirmRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.performSearchAll(itemCount, contentType);
+      }
+    });
+  }
+
+  private performSearchAll(itemCount: number, contentType: string): void {
+    this.isSearching = true;
+    
+    // Show loading notification
+    const loadingRef = this.notificationService.loading(`Triggering searches for ${itemCount} ${contentType}...`);
+    
+    // For now, show success message as bulk search isn't implemented yet
+    setTimeout(() => {
+      loadingRef.dismiss();
+      this.isSearching = false;
+      this.notificationService.info(`Bulk search for ${itemCount} ${contentType} - implementation coming soon`);
+    }, 2000);
+  }
+
+  /**
+   * Get the number of unique series for episodes
+   */
+  getSeriesCount(): number {
+    if (this.data.type !== 'episode') return 0;
+    
+    const uniqueSeriesIds = new Set(this.data.items.map((episode: any) => episode.seriesId));
+    return uniqueSeriesIds.size;
+  }
+
+  /**
+   * Group episodes by series
+   */
+  getGroupedBySeries(): Array<{seriesId: number, seriesTitle: string, episodes: any[]}> {
+    if (this.data.type !== 'episode') return [];
+    
+    const groupMap = new Map<number, {seriesId: number, seriesTitle: string, episodes: any[]}>();
+    
+    this.data.items.forEach((episode: any) => {
+      const seriesId = episode.seriesId;
+      const seriesTitle = episode.series?.title || `Series ${seriesId}`;
+      
+      if (!groupMap.has(seriesId)) {
+        groupMap.set(seriesId, {
+          seriesId,
+          seriesTitle,
+          episodes: []
+        });
+      }
+      
+      groupMap.get(seriesId)!.episodes.push(episode);
+    });
+    
+    // Sort episodes within each series by season and episode number
+    groupMap.forEach(group => {
+      group.episodes.sort((a, b) => {
+        if (a.seasonNumber !== b.seasonNumber) {
+          return a.seasonNumber - b.seasonNumber;
+        }
+        return a.episodeNumber - b.episodeNumber;
+      });
+    });
+    
+    // Convert to array and sort by series title
+    return Array.from(groupMap.values()).sort((a, b) => 
+      a.seriesTitle.localeCompare(b.seriesTitle)
+    );
+  }
+
+  /**
+   * Trigger search for entire series
+   */
+  triggerSeriesSearch(seriesGroup: {seriesId: number, seriesTitle: string, episodes: any[]}): void {
+    if (this.isSearching) {
+      this.notificationService.warning('Search already in progress');
+      return;
+    }
+
+    // Show confirmation dialog
+    const confirmData: ConfirmationDialogData = {
+      title: `Search Entire Series`,
+      message: `Do you want to trigger a search for the entire series:<br><strong>${seriesGroup.seriesTitle}</strong><br><br>This will search for all ${seriesGroup.episodes.length} episodes.`,
+      confirmText: 'Search Series',
+      cancelText: 'Cancel',
+      type: 'info',
+      icon: 'tv'
+    };
+
+    const confirmRef = this.dialog.open(ConfirmationDialogComponent, {
+      width: '500px',
+      data: confirmData
+    });
+
+    confirmRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.performSeriesSearch(seriesGroup);
+      }
+    });
+  }
+
+  private performSeriesSearch(seriesGroup: {seriesId: number, seriesTitle: string, episodes: any[]}): void {
+    this.isSearching = true;
+    
+    // Show loading notification
+    const loadingRef = this.notificationService.loading(`Searching for series: ${seriesGroup.seriesTitle}...`);
+    
+    this.data.contentManagementService.triggerSearch('series', seriesGroup.seriesId).subscribe({
+      next: () => {
+        loadingRef.dismiss();
+        this.isSearching = false;
+        this.notificationService.success(`Series search triggered successfully for ${seriesGroup.seriesTitle}`);
+      },
+      error: (error: any) => {
+        loadingRef.dismiss();
+        this.isSearching = false;
+        console.error(`Failed to trigger series search:`, error);
+        this.notificationService.error(`Failed to trigger series search for ${seriesGroup.seriesTitle}`);
+      }
+    });
   }
 }

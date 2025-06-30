@@ -484,12 +484,16 @@ Deep dive analysis of individual libraries
 - [ ] Create context menus for queue items
 - [ ] Add bulk actions for multiple items
 
-#### 6.7: Dashboard Integration 🚧 IN PROGRESS
+#### 6.7: Dashboard Integration ✅ COMPLETED
 - [x] Add new cards to main dashboard layout
 - [x] Implement dashboard grid system for card arrangement
+- [x] Add service status indicators on dashboard
+- [x] Create visual distinction between Radarr (movies) and Sonarr (TV shows) data
+- [x] Implement clickable tiles with detailed content dialogs
+- [x] Fix backend Sonarr service to populate series data for episodes
+- [x] Resolve empty Sonarr lists issue in wanted/missing content dialogs
 - [ ] Add toggle switches to show/hide specific cards
 - [ ] Create dashboard refresh mechanism
-- [ ] Add service status indicators on dashboard
 
 #### 6.8: Advanced UI Features
 - [ ] Add search functionality within cards
