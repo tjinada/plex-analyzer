@@ -528,6 +528,18 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
     return `${Math.round(bitrate / 1000000)} Mbps`;
   }
 
+  /**
+   * Get HDR format color class
+   */
+  getHDRClass(hdrFormat: string): string {
+    const formatLower = hdrFormat.toLowerCase();
+    if (formatLower.includes('dolby vision')) return 'hdr-dolby-vision';
+    if (formatLower.includes('hdr10+')) return 'hdr-hdr10plus';
+    if (formatLower.includes('hdr10')) return 'hdr-hdr10';
+    if (formatLower.includes('hlg')) return 'hdr-hlg';
+    return 'hdr-standard';
+  }
+
   private convertToCSV(files: (MediaFile | EnhancedMediaFile)[]): string {
     if (this.showEnhancedView && files.length > 0 && this.isEnhancedFile(files[0])) {
       // Enhanced CSV format

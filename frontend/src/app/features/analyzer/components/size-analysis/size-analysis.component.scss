@@ -374,8 +374,31 @@
       border-radius: 3px;
       font-size: 0.7rem;
       font-weight: 500;
-      background: #ff9800;
-      color: white;
+      
+      &.hdr-dolby-vision {
+        background: linear-gradient(135deg, #7c4dff 0%, #651fff 100%);
+        color: white;
+      }
+      
+      &.hdr-hdr10plus {
+        background-color: #ff6f00;
+        color: white;
+      }
+      
+      &.hdr-hdr10 {
+        background-color: #2196f3;
+        color: white;
+      }
+      
+      &.hdr-hlg {
+        background-color: #4caf50;
+        color: white;
+      }
+      
+      &.hdr-standard {
+        background-color: #ff9800;
+        color: white;
+      }
     }
 
     .source-badge {

@@ -329,23 +329,6 @@ export class EnhancedAnalyzerService {
       return null;
     }
 
-    console.log(`[EnhancedAnalyzerService] Extracting from Plex Media data:`, {
-      videoCodec: mediaStream.videoCodec,
-      videoProfile: mediaStream.videoProfile,
-      bitrate: mediaStream.bitrate,
-      width: mediaStream.width,
-      height: mediaStream.height,
-      aspectRatio: mediaStream.aspectRatio,
-      audioCodec: mediaStream.audioCodec,
-      audioChannels: mediaStream.audioChannels,
-      container: mediaStream.container,
-      duration: mediaStream.duration,
-      displayTitle: mediaStream.displayTitle,
-      colorPrimaries: mediaStream.colorPrimaries,
-      colorSpace: mediaStream.colorSpace,
-      transferCharacteristics: mediaStream.transferCharacteristics,
-      videoFrameRate: mediaStream.videoFrameRate
-    });
 
     // Extract video technical details
     const videoBitrate = parseInt(mediaStream.bitrate || '0', 10) * 1000; // Convert kbps to bps
@@ -365,8 +348,21 @@ export class EnhancedAnalyzerService {
     // Determine HDR format from various Plex fields
     let hdrFormat: string | undefined;
     
-    // Check for Dolby Vision first (most specific)
-    if (mediaStream.videoProfile?.toLowerCase().includes('dv') || 
+    // Check for explicit HDR fields first
+    if (mediaStream.dolbyVision === true || mediaStream.dolbyVision === 1) {
+      hdrFormat = 'Dolby Vision';
+    }
+    else if (mediaStream.hdr === true || mediaStream.hdr === 1) {
+      hdrFormat = 'HDR10';
+    }
+    else if (mediaStream.videoDynamicRange?.toLowerCase().includes('dolby')) {
+      hdrFormat = 'Dolby Vision';
+    }
+    else if (mediaStream.videoDynamicRange?.toLowerCase().includes('hdr')) {
+      hdrFormat = 'HDR10';
+    }
+    // Check for Dolby Vision in text fields (most specific)
+    else if (mediaStream.videoProfile?.toLowerCase().includes('dv') || 
         mediaStream.videoProfile?.toLowerCase().includes('dolby') ||
         mediaStream.displayTitle?.toLowerCase().includes('dolby vision') ||
         mediaStream.displayTitle?.toLowerCase().includes('dovi')) {
@@ -374,21 +370,57 @@ export class EnhancedAnalyzerService {
     }
     // Check for HDR10+ 
     else if (mediaStream.displayTitle?.toLowerCase().includes('hdr10+') ||
-             mediaStream.videoProfile?.toLowerCase().includes('hdr10+')) {
+             mediaStream.videoProfile?.toLowerCase().includes('hdr10+') ||
+             mediaStream.videoDynamicRange?.toLowerCase().includes('hdr10+')) {
       hdrFormat = 'HDR10+';
     }
     // Check for standard HDR10
     else if (mediaStream.displayTitle?.toLowerCase().includes('hdr10') ||
              mediaStream.displayTitle?.toLowerCase().includes('hdr') ||
              mediaStream.colorPrimaries === 'bt2020' || 
+             mediaStream.videoColourPrimaries === 'bt2020' ||
              mediaStream.colorSpace === 'bt2020nc' ||
-             mediaStream.transferCharacteristics === 'smpte2084') {
+             mediaStream.transferCharacteristics === 'smpte2084' ||
+             mediaStream.videoTransferCharacteristics === 'smpte2084') {
       hdrFormat = 'HDR10';
     }
     // Check for HLG
     else if (mediaStream.transferCharacteristics === 'arib-std-b67' ||
-             mediaStream.displayTitle?.toLowerCase().includes('hlg')) {
+             mediaStream.videoTransferCharacteristics === 'arib-std-b67' ||
+             mediaStream.displayTitle?.toLowerCase().includes('hlg') ||
+             mediaStream.videoDynamicRange?.toLowerCase().includes('hlg')) {
       hdrFormat = 'HLG';
+    }
+    
+    // If no HDR format detected from Plex metadata, check the filename
+    if (!hdrFormat && part?.file) {
+      const filename = part.file.toLowerCase();
+      
+      // Check for Dolby Vision indicators
+      if (filename.includes('[dv') || filename.includes('dolby.vision') || 
+          filename.includes('dovi') || filename.includes('dolbyvision')) {
+        // Check if it's DV + HDR10
+        if (filename.includes('hdr10]') || filename.includes('hdr10 ') || 
+            filename.includes('dv hdr10') || filename.includes('dv.hdr10')) {
+          hdrFormat = 'Dolby Vision / HDR10';
+        } else {
+          hdrFormat = 'Dolby Vision';
+        }
+      }
+      // Check for HDR10+
+      else if (filename.includes('hdr10+') || filename.includes('hdr10plus')) {
+        hdrFormat = 'HDR10+';
+      }
+      // Check for standard HDR10
+      else if (filename.includes('hdr10') || filename.includes('[hdr]') || 
+               filename.includes('.hdr.')) {
+        hdrFormat = 'HDR10';
+      }
+      // Check for HLG
+      else if (filename.includes('hlg')) {
+        hdrFormat = 'HLG';
+      }
+      
     }
 
     // Estimate audio bitrate and channels

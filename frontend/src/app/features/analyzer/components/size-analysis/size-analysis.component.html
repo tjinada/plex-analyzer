@@ -264,6 +264,9 @@
                     <span class="bit-depth-badge" [class]="'depth-' + file.bitDepth">
                       {{ file.bitDepth }}-bit
                     </span>
+                    <span *ngIf="file.hdrFormat" class="hdr-badge" [class]="getHDRClass(file.hdrFormat)">
+                      {{ file.hdrFormat }}
+                    </span>
                     <span class="bitrate-info" matTooltip="Video Bitrate">
                       {{ formatBitrate(file.videoBitrate) }}
                     </span>
