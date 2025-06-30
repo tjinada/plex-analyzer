@@ -129,6 +129,11 @@ export interface EnhancedSizeAnalysis extends SizeAnalysis {
   codecDistribution: CodecDistribution;
   technicalBreakdown: TechnicalBreakdown;
   upgradeRecommendations: UpgradeRecommendation[];
+  // Episode-level metrics for TV shows
+  episodeQualityDistribution?: QualityDistribution;
+  episodeCodecDistribution?: CodecDistribution;
+  episodeTechnicalBreakdown?: TechnicalBreakdown;
+  episodeUpgradeRecommendations?: UpgradeRecommendation[];
 }
 
 export interface SizeDistribution {

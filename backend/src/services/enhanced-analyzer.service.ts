@@ -79,6 +79,11 @@ export interface EnhancedSizeAnalysis extends SizeAnalysis {
   codecDistribution: CodecDistribution;
   technicalBreakdown: TechnicalBreakdown;
   upgradeRecommendations: UpgradeRecommendation[];
+  // Episode-level metrics for TV shows
+  episodeQualityDistribution?: QualityDistribution;
+  episodeCodecDistribution?: CodecDistribution;
+  episodeTechnicalBreakdown?: TechnicalBreakdown;
+  episodeUpgradeRecommendations?: UpgradeRecommendation[];
 }
 
 export interface PaginatedEnhancedSizeAnalysis {
@@ -163,11 +168,25 @@ export class EnhancedAnalyzerService {
       );
     }
 
-    // Generate quality insights
+    // Generate quality insights for show-level view
     const qualityDistribution = this.calculateQualityDistribution(enhancedFiles);
     const codecDistribution = this.calculateCodecDistribution(enhancedFiles);
     const technicalBreakdown = this.calculateTechnicalBreakdown(enhancedFiles);
     const upgradeRecommendations = this.generateUpgradeRecommendations(enhancedFiles);
+    
+    // Generate episode-level metrics if this is a TV show library
+    let episodeQualityDistribution: QualityDistribution | undefined;
+    let episodeCodecDistribution: CodecDistribution | undefined;
+    let episodeTechnicalBreakdown: TechnicalBreakdown | undefined;
+    let episodeUpgradeRecommendations: UpgradeRecommendation[] | undefined;
+    
+    if (enhancedEpisodeBreakdown && enhancedEpisodeBreakdown.length > 0) {
+      console.log(`[EnhancedAnalyzerService] Calculating episode-level metrics for ${enhancedEpisodeBreakdown.length} episodes`);
+      episodeQualityDistribution = this.calculateQualityDistribution(enhancedEpisodeBreakdown);
+      episodeCodecDistribution = this.calculateCodecDistribution(enhancedEpisodeBreakdown);
+      episodeTechnicalBreakdown = this.calculateTechnicalBreakdown(enhancedEpisodeBreakdown);
+      episodeUpgradeRecommendations = this.generateUpgradeRecommendations(enhancedEpisodeBreakdown);
+    }
 
     const enhancedAnalysis: EnhancedSizeAnalysis = {
       ...basicAnalysis.data,
@@ -176,7 +195,12 @@ export class EnhancedAnalyzerService {
       qualityDistribution,
       codecDistribution,
       technicalBreakdown,
-      upgradeRecommendations
+      upgradeRecommendations,
+      // Episode-level metrics for TV shows
+      episodeQualityDistribution,
+      episodeCodecDistribution,
+      episodeTechnicalBreakdown,
+      episodeUpgradeRecommendations
     };
 
     return {

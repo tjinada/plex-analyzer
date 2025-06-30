@@ -98,38 +98,38 @@
             <div class="quality-stats">
               <div class="quality-stat tier-excellent">
                 <span class="label">Excellent:</span>
-                <span class="value">{{ enhancedAnalysis.qualityDistribution.excellent }}</span>
+                <span class="value">{{ getCurrentQualityDistribution().excellent }}</span>
               </div>
               <div class="quality-stat tier-good">
                 <span class="label">Good:</span>
-                <span class="value">{{ enhancedAnalysis.qualityDistribution.good }}</span>
+                <span class="value">{{ getCurrentQualityDistribution().good }}</span>
               </div>
               <div class="quality-stat tier-fair">
                 <span class="label">Fair:</span>
-                <span class="value">{{ enhancedAnalysis.qualityDistribution.fair }}</span>
+                <span class="value">{{ getCurrentQualityDistribution().fair }}</span>
               </div>
               <div class="quality-stat tier-poor">
                 <span class="label">Poor:</span>
-                <span class="value">{{ enhancedAnalysis.qualityDistribution.poor }}</span>
+                <span class="value">{{ getCurrentQualityDistribution().poor }}</span>
               </div>
             </div>
           </mat-card-content>
         </mat-card>
 
         <!-- HDR Content Card -->
-        <mat-card class="overview-card" *ngIf="enhancedAnalysis.technicalBreakdown.hdrContent.count > 0">
+        <mat-card class="overview-card" *ngIf="getCurrentTechnicalBreakdown().hdrContent.count > 0">
           <mat-card-header>
             <mat-card-title>HDR Content</mat-card-title>
           </mat-card-header>
           <mat-card-content>
             <div class="hdr-stats">
               <div class="hdr-summary">
-                <span class="hdr-count">{{ enhancedAnalysis.technicalBreakdown.hdrContent.count }}</span>
-                <span class="hdr-percentage">({{ enhancedAnalysis.technicalBreakdown.hdrContent.percentage.toFixed(1) }}%)</span>
+                <span class="hdr-count">{{ getCurrentTechnicalBreakdown().hdrContent.count }}</span>
+                <span class="hdr-percentage">({{ getCurrentTechnicalBreakdown().hdrContent.percentage.toFixed(1) }}%)</span>
               </div>
               <div class="hdr-formats">
                 <mat-chip-listbox>
-                  <mat-chip *ngFor="let format of enhancedAnalysis!.technicalBreakdown.hdrContent.formats | keyvalue">
+                  <mat-chip *ngFor="let format of getCurrentTechnicalBreakdown().hdrContent.formats | keyvalue">
                     {{ format.key }}: {{ format.value }}
                   </mat-chip>
                 </mat-chip-listbox>
@@ -139,13 +139,13 @@
         </mat-card>
 
         <!-- Upgrade Opportunities Card -->
-        <mat-card class="overview-card" *ngIf="enhancedAnalysis.upgradeRecommendations.length > 0">
+        <mat-card class="overview-card" *ngIf="getCurrentUpgradeRecommendations().length > 0">
           <mat-card-header>
             <mat-card-title>Upgrade Opportunities</mat-card-title>
           </mat-card-header>
           <mat-card-content>
             <div class="upgrade-summary">
-              <div class="upgrade-count">{{ enhancedAnalysis.upgradeRecommendations.length }}</div>
+              <div class="upgrade-count">{{ getCurrentUpgradeRecommendations().length }}</div>
               <div class="upgrade-label">items can be upgraded</div>
             </div>
           </mat-card-content>

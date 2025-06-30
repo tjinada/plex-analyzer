@@ -200,6 +200,55 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
   }
 
   /**
+   * Get quality distribution based on current view (show vs episode)
+   */
+  getCurrentQualityDistribution(): any {
+    if (!this.enhancedAnalysis) {
+      return { excellent: 0, good: 0, fair: 0, poor: 0 };
+    }
+    
+    if (this.showEpisodeView && this.enhancedAnalysis.episodeQualityDistribution) {
+      return this.enhancedAnalysis.episodeQualityDistribution;
+    }
+    
+    return this.enhancedAnalysis.qualityDistribution;
+  }
+
+  /**
+   * Get technical breakdown based on current view
+   */
+  getCurrentTechnicalBreakdown(): any {
+    if (!this.enhancedAnalysis) {
+      return { 
+        hdrContent: { count: 0, percentage: 0, formats: {} },
+        bitDepthDistribution: {},
+        colorSpaceDistribution: {}
+      };
+    }
+    
+    if (this.showEpisodeView && this.enhancedAnalysis.episodeTechnicalBreakdown) {
+      return this.enhancedAnalysis.episodeTechnicalBreakdown;
+    }
+    
+    return this.enhancedAnalysis.technicalBreakdown;
+  }
+
+  /**
+   * Get upgrade recommendations based on current view
+   */
+  getCurrentUpgradeRecommendations(): any[] {
+    if (!this.enhancedAnalysis) {
+      return [];
+    }
+    
+    if (this.showEpisodeView && this.enhancedAnalysis.episodeUpgradeRecommendations) {
+      return this.enhancedAnalysis.episodeUpgradeRecommendations;
+    }
+    
+    return this.enhancedAnalysis.upgradeRecommendations || [];
+  }
+
+  /**
    * Check if TV show library has episodes
    */
   get hasEpisodes(): boolean {
