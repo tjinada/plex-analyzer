@@ -335,9 +335,26 @@ export class SonarrService {
         params.sortDirection = filters.sortDirection || 'asc';
       }
 
-      const response = await this.client.get('/wanted/missing', { params });
+      // Get episodes and series data
+      const [episodesResponse, allSeries] = await Promise.all([
+        this.client.get('/wanted/missing', { params }),
+        this.getSeries()
+      ]);
       
-      let episodes = response.data.records || response.data || [];
+      let episodes = episodesResponse.data.records || episodesResponse.data || [];
+      
+      // Create a map of series for faster lookup
+      const seriesMap = new Map(allSeries.map(series => [series.id, series]));
+      
+      // Populate series data for each episode
+      episodes = episodes.map((ep: any) => ({
+        ...ep,
+        series: seriesMap.get(ep.seriesId) || {
+          id: ep.seriesId,
+          title: 'Unknown Series',
+          added: new Date().toISOString()
+        }
+      }));
       
       // Apply filters
       if (filters?.seriesId) {
@@ -387,16 +404,33 @@ export class SonarrService {
         params.sortDirection = filters.sortDirection || 'asc';
       }
 
-      const response = await this.client.get('/wanted/missing', { params });
+      // Get episodes and series data
+      const [episodesResponse, allSeries] = await Promise.all([
+        this.client.get('/wanted/missing', { params }),
+        this.getSeries()
+      ]);
       
       // Filter for missing episodes (aired but not downloaded)
-      let episodes = response.data.records || response.data || [];
+      let episodes = episodesResponse.data.records || episodesResponse.data || [];
       episodes = episodes.filter((ep: any) => {
         if (!ep.airDateUtc) return false;
         const airDate = new Date(ep.airDateUtc);
         const now = new Date();
         return airDate <= now && !ep.hasFile;
       });
+      
+      // Create a map of series for faster lookup
+      const seriesMap = new Map(allSeries.map(series => [series.id, series]));
+      
+      // Populate series data for each episode
+      episodes = episodes.map((ep: any) => ({
+        ...ep,
+        series: seriesMap.get(ep.seriesId) || {
+          id: ep.seriesId,
+          title: 'Unknown Series',
+          added: new Date().toISOString()
+        }
+      }));
       
       // Apply additional filters
       if (filters?.seriesId) {

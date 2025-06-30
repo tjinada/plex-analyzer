@@ -9,6 +9,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { Observable, Subject, interval } from 'rxjs';
 import { takeUntil, startWith, switchMap } from 'rxjs/operators';
 
@@ -30,6 +31,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
     MatTooltipModule,
     MatMenuModule,
     MatChipsModule,
+    MatDialogModule,
     BytesPipe
   ],
   template: `
@@ -93,13 +95,15 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
               </div>
             </div>
             <div class="summary-stats">
-              <div class="stat-item total">
+              <div class="stat-item total clickable" (click)="viewAllQueue()">
                 <div class="stat-number">{{ totalItems }}</div>
                 <div class="stat-label">Total Items</div>
+                <div class="click-hint" *ngIf="totalItems > 0">Click to view</div>
               </div>
-              <div class="stat-item downloading">
+              <div class="stat-item downloading clickable" (click)="viewActiveDownloads()">
                 <div class="stat-number">{{ downloadingCount }}</div>
                 <div class="stat-label">Downloading</div>
+                <div class="click-hint" *ngIf="downloadingCount > 0">Click to view</div>
               </div>
               <div class="stat-item size">
                 <div class="stat-number">{{ totalSize | bytes }}</div>
@@ -311,6 +315,30 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
 
     .stat-item {
       text-align: center;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .stat-item.clickable {
+      cursor: pointer;
+      padding: 12px;
+      border-radius: 6px;
+    }
+
+    .stat-item.clickable:hover {
+      background-color: rgba(33, 150, 243, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .click-hint {
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: #666;
+      opacity: 0.7;
+      font-style: italic;
     }
 
     .stat-number {
@@ -555,7 +583,8 @@ export class DownloadQueueCardComponent implements OnInit, OnDestroy {
   failedDownloads: QueueItem[] = [];
 
   constructor(
-    private contentManagementService: ContentManagementService
+    private contentManagementService: ContentManagementService,
+    private dialog: MatDialog
   ) {
     this.loading$ = this.contentManagementService.loading$;
     this.error$ = this.contentManagementService.error$;
@@ -742,5 +771,43 @@ export class DownloadQueueCardComponent implements OnInit, OnDestroy {
    */
   viewFullQueue(): void {
     console.log('View full queue - not yet implemented');
+  }
+
+  /**
+   * View all queue items
+   */
+  viewAllQueue(): void {
+    if (this.totalItems === 0) return;
+    
+    this.openQueueDialog('Download Queue', this.queueItems);
+  }
+
+  /**
+   * View active downloads only
+   */
+  viewActiveDownloads(): void {
+    if (this.downloadingCount === 0) return;
+    
+    this.openQueueDialog('Active Downloads', this.activeDownloads);
+  }
+
+  /**
+   * Open queue detail dialog
+   */
+  private openQueueDialog(title: string, items: QueueItem[]): void {
+    // Import the dialog component
+    import('../wanted-content-card/wanted-content-card.component').then(module => {
+      this.dialog.open(module.ContentDetailDialogComponent, {
+        width: '80%',
+        maxWidth: '1000px',
+        maxHeight: '80vh',
+        data: {
+          title,
+          items,
+          type: 'queue',
+          contentManagementService: this.contentManagementService
+        }
+      });
+    });
   }
 }

@@ -8,6 +8,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -26,7 +27,8 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
     MatBadgeModule,
     MatTooltipModule,
     MatMenuModule,
-    MatChipsModule
+    MatChipsModule,
+    MatDialogModule
   ],
   template: `
     <mat-card class="missing-content-card">
@@ -78,21 +80,23 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
         <div *ngIf="!(loading$ | async) && !(error$ | async)" class="content-stats">
           <!-- Summary Statistics -->
           <div class="stats-grid">
-            <div class="stat-item movies">
+            <div class="stat-item movies clickable" (click)="viewMissingMovies()">
               <div class="service-badge radarr">
                 <mat-icon>movie</mat-icon>
                 <span>Radarr</span>
               </div>
               <div class="stat-number">{{ totalMissingMovies }}</div>
               <div class="stat-label">Movies</div>
+              <div class="click-hint" *ngIf="totalMissingMovies > 0">Click to view</div>
             </div>
-            <div class="stat-item episodes">
+            <div class="stat-item episodes clickable" (click)="viewMissingEpisodes()">
               <div class="service-badge sonarr">
                 <mat-icon>tv</mat-icon>
                 <span>Sonarr</span>
               </div>
               <div class="stat-number">{{ totalMissingEpisodes }}</div>
               <div class="stat-label">Episodes</div>
+              <div class="click-hint" *ngIf="totalMissingEpisodes > 0">Click to view</div>
             </div>
           </div>
 
@@ -216,6 +220,16 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
       min-height: 100px;
       justify-content: center;
       gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .stat-item.clickable {
+      cursor: pointer;
+    }
+
+    .stat-item.clickable:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .stat-item.movies {
@@ -226,6 +240,15 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
     .stat-item.episodes {
       background-color: rgba(255, 152, 0, 0.08);
       border: 2px solid #ff9800;
+    }
+
+    .click-hint {
+      position: absolute;
+      bottom: 4px;
+      font-size: 10px;
+      color: #666;
+      opacity: 0.7;
+      font-style: italic;
     }
 
     .service-badge {
@@ -413,7 +436,8 @@ export class MissingContentCardComponent implements OnInit, OnDestroy {
   missingSeries: Array<{id: number, title: string, missingCount: number}> = [];
 
   constructor(
-    private contentManagementService: ContentManagementService
+    private contentManagementService: ContentManagementService,
+    private dialog: MatDialog
   ) {
     this.loading$ = this.contentManagementService.loading$;
     this.error$ = this.contentManagementService.error$;
@@ -438,6 +462,14 @@ export class MissingContentCardComponent implements OnInit, OnDestroy {
         next: (data) => {
           this.totalMissingMovies = data.movies.length;
           this.totalMissingEpisodes = data.episodes.length;
+          
+          // Debug logging
+          console.log('Missing content debug:', {
+            movies: this.totalMissingMovies,
+            episodes: this.totalMissingEpisodes,
+            rawMoviesData: data.movies,
+            rawEpisodesData: data.episodes
+          });
           
           // Get priority items (recently available, sorted by availability date)
           const allItems = [...data.movies, ...data.episodes];
@@ -634,5 +666,61 @@ export class MissingContentCardComponent implements OnInit, OnDestroy {
    */
   sortByDate(): void {
     console.log('Sort by date - not yet implemented');
+  }
+
+  /**
+   * View missing movies in detail
+   */
+  viewMissingMovies(): void {
+    if (this.totalMissingMovies === 0) return;
+    
+    this.contentManagementService.getAllMissingContent()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.openContentDialog('Missing Movies', data.movies, 'movie');
+        },
+        error: (error) => {
+          console.error('Failed to load missing movies for dialog:', error);
+        }
+      });
+  }
+
+  /**
+   * View missing episodes in detail
+   */
+  viewMissingEpisodes(): void {
+    if (this.totalMissingEpisodes === 0) return;
+    
+    this.contentManagementService.getAllMissingContent()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => {
+          this.openContentDialog('Missing Episodes', data.episodes, 'episode');
+        },
+        error: (error) => {
+          console.error('Failed to load missing episodes for dialog:', error);
+        }
+      });
+  }
+
+  /**
+   * Open content detail dialog
+   */
+  private openContentDialog(title: string, items: any[], type: 'movie' | 'episode'): void {
+    // Import the dialog component from the wanted content card
+    import('../wanted-content-card/wanted-content-card.component').then(module => {
+      this.dialog.open(module.ContentDetailDialogComponent, {
+        width: '80%',
+        maxWidth: '1000px',
+        maxHeight: '80vh',
+        data: {
+          title,
+          items,
+          type,
+          contentManagementService: this.contentManagementService
+        }
+      });
+    });
   }
 }
