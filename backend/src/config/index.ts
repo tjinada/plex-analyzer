@@ -32,6 +32,16 @@ interface ConfigData {
   };
   settings?: {
     dataSource?: 'plex' | 'tautulli'; // Default to 'plex' if not specified
+    qualityPreferences?: {
+      movies?: {
+        preferredResolution?: '4K' | '1080p' | '720p' | '480p';
+        acceptableResolutions?: string[];
+      };
+      tvShows?: {
+        preferredResolution?: '4K' | '1080p' | '720p' | '480p';
+        acceptableResolutions?: string[];
+      };
+    };
   };
   lastUpdated: string | null;
 }
@@ -185,6 +195,16 @@ export const config = {
   // Settings - load from file if available, otherwise use defaults
   settings: {
     dataSource: fileConfig?.settings?.dataSource || (process.env.DATA_SOURCE as 'plex' | 'tautulli') || 'plex',
+    qualityPreferences: fileConfig?.settings?.qualityPreferences || {
+      movies: {
+        preferredResolution: '4K' as const,
+        acceptableResolutions: ['4K', '1080p']
+      },
+      tvShows: {
+        preferredResolution: '1080p' as const,
+        acceptableResolutions: ['1080p', '720p']
+      }
+    },
   },
 };
 
@@ -220,6 +240,12 @@ export function updateConfig(newConfig: Partial<ConfigData>): boolean {
     // Update settings if provided
     if (newConfig.settings) {
       config.settings.dataSource = newConfig.settings.dataSource || config.settings.dataSource;
+      if (newConfig.settings.qualityPreferences) {
+        config.settings.qualityPreferences = {
+          ...config.settings.qualityPreferences,
+          ...newConfig.settings.qualityPreferences
+        };
+      }
     }
 
     // Save to file

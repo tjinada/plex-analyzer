@@ -230,6 +230,9 @@ export class EnhancedAnalyzerService {
       const releaseGroup = this.extractReleaseGroup(searchText);
       const encodingTool = this.extractEncodingTool(searchText);
       
+      // Determine content type for resolution scoring
+      const contentType: 'movie' | 'episode' = file.type === 'episode' ? 'episode' : 'movie';
+      
       // Calculate quality score with all parameters
       const qualityData = this.qualityScorer.calculateQualityScore(
         technicalDetails.video,
@@ -239,7 +242,8 @@ export class EnhancedAnalyzerService {
         encodingTool,
         searchText,
         false, // TODO: Extract multiple audio tracks from Plex data
-        false  // TODO: Extract subtitle info from Plex data
+        false, // TODO: Extract subtitle info from Plex data
+        contentType
       );
 
       const enhancedFile: EnhancedMediaFile = {

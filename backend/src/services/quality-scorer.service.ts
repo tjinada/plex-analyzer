@@ -1,4 +1,5 @@
 import { VideoTechnicalDetails, AudioTechnicalDetails } from './mediainfo.service';
+import { config } from '../config';
 
 export interface QualityScoreComponents {
   resolutionScore: number;    // 0-25
@@ -25,7 +26,8 @@ export class QualityScorerService {
     encodingTool?: string,
     filePath?: string,
     hasMultipleAudioTracks?: boolean,
-    hasSubtitles?: boolean
+    hasSubtitles?: boolean,
+    contentType?: 'movie' | 'episode'
   ): {
     components: QualityScoreComponents;
     totalScore: number;
@@ -33,7 +35,7 @@ export class QualityScorerService {
     upgradeReasons: string[];
   } {
     const components: QualityScoreComponents = {
-      resolutionScore: this.calculateResolutionScore(mediaDetails.width, mediaDetails.height),
+      resolutionScore: this.calculateResolutionScore(mediaDetails.width, mediaDetails.height, contentType),
       codecScore: this.calculateCodecScore(mediaDetails.codec, mediaDetails.profile, encodingTool, filePath),
       bitrateScore: this.calculateBitrateScore(mediaDetails.bitrate, mediaDetails.width, mediaDetails.height, mediaDetails.codec),
       sourceScore: this.calculateSourceScore(sourceType || 'Unknown', filePath),
@@ -53,15 +55,47 @@ export class QualityScorerService {
     return { components, totalScore, tier, upgradeReasons };
   }
 
-  private calculateResolutionScore(width: number, height: number): number {
+  private calculateResolutionScore(width: number, height: number, contentType?: 'movie' | 'episode'): number {
     const pixels = width * height;
+    const actualResolution = this.getResolutionCategory(pixels);
     
-    if (pixels >= 3840 * 2160) return 25;      // 4K UHD
-    if (pixels >= 1920 * 1080) return 20;      // 1080p
-    if (pixels >= 1280 * 720) return 15;       // 720p
-    if (pixels >= 720 * 576) return 10;        // 576p
-    if (pixels >= 720 * 480) return 5;         // 480p
-    return 0;                                   // < 480p
+    // Get user preferences
+    const preferences = config.settings.qualityPreferences;
+    let preferredResolution: string;
+    let acceptableResolutions: string[];
+    
+    if (contentType === 'episode') {
+      preferredResolution = preferences?.tvShows?.preferredResolution || '1080p';
+      acceptableResolutions = preferences?.tvShows?.acceptableResolutions || ['1080p', '720p'];
+    } else {
+      // Default to movie preferences for movies or unknown content type
+      preferredResolution = preferences?.movies?.preferredResolution || '4K';
+      acceptableResolutions = preferences?.movies?.acceptableResolutions || ['4K', '1080p'];
+    }
+    
+    // Score based on user preferences
+    if (actualResolution === preferredResolution) {
+      return 25; // Perfect match with user preference
+    } else if (acceptableResolutions.includes(actualResolution)) {
+      return 20; // Acceptable resolution
+    } else {
+      // Fall back to traditional scoring for non-preferred resolutions
+      if (pixels >= 3840 * 2160) return 15;      // 4K but not preferred
+      if (pixels >= 1920 * 1080) return 12;      // 1080p but not preferred
+      if (pixels >= 1280 * 720) return 8;        // 720p but not preferred
+      if (pixels >= 720 * 576) return 5;         // 576p
+      if (pixels >= 720 * 480) return 2;         // 480p
+      return 0;                                   // < 480p
+    }
+  }
+  
+  private getResolutionCategory(pixels: number): string {
+    if (pixels >= 3840 * 2160) return '4K';
+    if (pixels >= 1920 * 1080) return '1080p';
+    if (pixels >= 1280 * 720) return '720p';
+    if (pixels >= 720 * 576) return '576p';
+    if (pixels >= 720 * 480) return '480p';
+    return 'SD';
   }
 
   private calculateCodecScore(codec: string, profile: string, encodingTool?: string, filePath?: string): number {
