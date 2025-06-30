@@ -211,11 +211,15 @@ export class TautulliAnalyzerService {
    */
   async getSizeAnalysis(libraryId: string, limit: number = 25, offset: number = 0): Promise<PaginatedSizeAnalysis> {
     const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}:${limit}:${offset}`;
+    console.log(`[TautulliAnalyzerService] Checking cache for key: ${cacheKey}`);
     const cached = cache.get<PaginatedSizeAnalysis>(cacheKey);
     
     if (cached) {
+      console.log(`[TautulliAnalyzerService] *** RETURNING CACHED DATA *** - ${cached.data.largestFiles.length} files`);
       return cached;
     }
+    
+    console.log(`[TautulliAnalyzerService] *** NO CACHE FOUND - FETCHING FRESH DATA ***`);
 
     const mediaInfo = await tautulliService.getLibraryMediaInfo(libraryId, { 
       orderColumn: 'file_size',
@@ -223,8 +227,38 @@ export class TautulliAnalyzerService {
       length: 5000 
     });
     
-    const items = mediaInfo.data || [];
+    let items = mediaInfo.data || [];
     console.log(`[TautulliAnalyzerService] Retrieved ${items.length} total items for library ${libraryId}`);
+    
+    // For TV shows, Tautulli's API returns shows at the library level
+    // We need to use a different approach - get ALL items with proper parameters
+    console.log(`[TautulliAnalyzerService] First item media_type: ${items.length > 0 ? items[0].media_type : 'no items'}`);
+    if (items.length > 0 && items[0].media_type === 'show') {
+      console.log(`[TautulliAnalyzerService] TV show library detected, need to fetch episodes differently`);
+      
+      // For TV shows, we need to get the media info with different parameters
+      // The Plex Analyzer service gets episodes from Plex directly, but we're using Tautulli
+      // Tautulli stores episode data differently - we need to get library items at episode level
+      
+      // Try getting all media items with no grouping
+      const allMediaInfo = await tautulliService.getLibraryMediaInfo(libraryId, {
+        orderColumn: 'file_size',
+        orderDir: 'desc',
+        length: 10000,
+        // Try to get ungrouped data
+        grouping: 0
+      });
+      
+      items = allMediaInfo.data || [];
+      console.log(`[TautulliAnalyzerService] Retrieved ${items.length} items with grouping=0`);
+      
+      // If still getting shows, we need to handle this differently
+      if (items.length > 0 && items[0].media_type === 'show') {
+        console.log(`[TautulliAnalyzerService] Still getting shows. This Tautulli library may not have episode-level data exposed.`);
+        // Return empty array to match the behavior when no items have file sizes
+        items = [];
+      }
+    }
     
     if (!items || items.length === 0) {
       console.warn(`[TautulliAnalyzerService] No items found in library ${libraryId}`);
@@ -244,6 +278,7 @@ export class TautulliAnalyzerService {
       pagination
     };
     
+    console.log(`[TautulliAnalyzerService] *** CACHING FRESH DATA *** - Key: ${cacheKey}, Files: ${fullSizeAnalysis.largestFiles.length}`);
     cache.set(cacheKey, result, this.CACHE_TTL);
     return result;
   }

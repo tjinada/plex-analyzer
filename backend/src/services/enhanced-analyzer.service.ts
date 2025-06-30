@@ -2,6 +2,8 @@ import { TautulliAnalyzerService, MediaFile, SizeAnalysis } from './tautulli-ana
 import { MediaInfoService, VideoTechnicalDetails, AudioTechnicalDetails, ContainerDetails } from './mediainfo.service';
 import { QualityScorerService, QualityTier, QualityScoreComponents } from './quality-scorer.service';
 import { cache } from '../utils/cache.util';
+import { analyzerService } from './analyzer-factory';
+import { config } from '../config';
 
 export interface EnhancedMediaFile extends MediaFile {
   // Technical details
@@ -84,15 +86,25 @@ export interface PaginatedEnhancedSizeAnalysis {
   pagination: any;
 }
 
-export class EnhancedAnalyzerService extends TautulliAnalyzerService {
+// We should not extend a specific analyzer service, instead compose with the configured one
+export class EnhancedAnalyzerService {
   private mediaInfoService: MediaInfoService;
   private qualityScorer: QualityScorerService;
   private readonly ENHANCED_CACHE_PREFIX = 'enhanced_analysis:';
 
   constructor() {
-    super();
     this.mediaInfoService = new MediaInfoService();
     this.qualityScorer = new QualityScorerService();
+    console.log('[EnhancedAnalyzerService] *** ENHANCED ANALYZER SERVICE CONSTRUCTED ***');
+    console.log(`[EnhancedAnalyzerService] Using analyzer service: ${config.settings.dataSource}`);
+  }
+
+  /**
+   * Simple test method to verify service is working
+   */
+  async testMethod(): Promise<string> {
+    console.log('[EnhancedAnalyzerService] TEST METHOD CALLED');
+    return 'Enhanced analyzer service is working!';
   }
 
   /**
@@ -103,21 +115,51 @@ export class EnhancedAnalyzerService extends TautulliAnalyzerService {
     limit: number = -1,
     offset: number = 0
   ): Promise<PaginatedEnhancedSizeAnalysis> {
-    console.log(`[EnhancedAnalyzerService] Generating enhanced analysis for library ${libraryId}`);
+    console.log(`=====================================`);
+    console.log(`[EnhancedAnalyzerService] *** ENHANCED ANALYSIS CALLED ***`);
+    console.log(`[EnhancedAnalyzerService] Library: ${libraryId}, Limit: ${limit}, Offset: ${offset}`);
+    console.log(`=====================================`);
     
-    // Get basic analysis first
-    const basicAnalysis = await super.getSizeAnalysis(libraryId, limit, offset);
+    // Get basic analysis from the configured analyzer service
+    const basicAnalysis = await analyzerService.getSizeAnalysis(libraryId, limit, offset);
+    console.log(`[EnhancedAnalyzerService] Basic analysis hasEpisodes: ${basicAnalysis.data.hasEpisodes}`);
+    console.log(`[EnhancedAnalyzerService] Basic analysis files: ${basicAnalysis.data.largestFiles.length}`);
+    console.log(`[EnhancedAnalyzerService] Episode breakdown files: ${basicAnalysis.data.episodeBreakdown?.length || 0}`);
     
-    // Enhance with technical details
+    // Check what data we have
+    console.log(`[EnhancedAnalyzerService] Data structure:`, {
+      hasEpisodes: basicAnalysis.data.hasEpisodes,
+      largestFiles: basicAnalysis.data.largestFiles.length,
+      largestFilesType: basicAnalysis.data.largestFiles[0]?.type || 'none',
+      episodeBreakdown: basicAnalysis.data.episodeBreakdown?.length || 0
+    });
+    
+    // For TV shows, we should enhance the aggregated show data, not individual episodes
+    // The basic analysis already provides the right structure
+    const filesToEnhance = basicAnalysis.data.largestFiles;
+    
+    console.log(`[EnhancedAnalyzerService] Using ${filesToEnhance.length} files for enhancement`);
+    
+    // Apply limit to source files  
+    const filesToProcess = limit === -1 ? filesToEnhance : filesToEnhance.slice(0, limit);
+    console.log(`[EnhancedAnalyzerService] Processing ${filesToProcess.length} files after limit applied`);
+    
+    // Enhance files with technical details
+    console.log(`[EnhancedAnalyzerService] Starting enhancement of files...`);
     const enhancedFiles = await Promise.all(
-      basicAnalysis.data.largestFiles.map(file => this.enrichMediaFile(file))
+      filesToProcess.map(async (file, index) => {
+        console.log(`[EnhancedAnalyzerService] Enhancing ${index + 1}/${filesToProcess.length}: ${file.title} (${file.type})`);
+        return this.enrichMediaFile(file);
+      })
     );
-
-    // Update episode breakdown if present
+    console.log(`[EnhancedAnalyzerService] Completed enhancement of ${enhancedFiles.length} files`);
+    
+    // Also enhance episode breakdown if present
     let enhancedEpisodeBreakdown: EnhancedMediaFile[] | undefined;
-    if (basicAnalysis.data.episodeBreakdown) {
+    if (basicAnalysis.data.hasEpisodes && basicAnalysis.data.episodeBreakdown) {
+      console.log(`[EnhancedAnalyzerService] Enhancing episode breakdown...`);
       enhancedEpisodeBreakdown = await Promise.all(
-        basicAnalysis.data.episodeBreakdown.map(file => this.enrichMediaFile(file))
+        basicAnalysis.data.episodeBreakdown.map(ep => this.enrichMediaFile(ep))
       );
     }
 
@@ -147,6 +189,7 @@ export class EnhancedAnalyzerService extends TautulliAnalyzerService {
    * Enrich a media file with technical details and quality scoring
    */
   private async enrichMediaFile(file: MediaFile): Promise<EnhancedMediaFile> {
+    console.log(`[EnhancedAnalyzerService] Enriching file: ${file.id} (${file.title}) - type: ${file.type}`);
     const cacheKey = `${this.ENHANCED_CACHE_PREFIX}${file.id}`;
     const cached = cache.get<EnhancedMediaFile>(cacheKey);
     

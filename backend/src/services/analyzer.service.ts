@@ -1,7 +1,8 @@
 import { plexService } from './plex.service';
-import { tautulliService } from './tautulli.service';
-import { radarrService } from './radarr.service';
-import { sonarrService } from './sonarr.service';
+// Commented out unused imports to fix TypeScript errors
+// import { tautulliService } from './tautulli.service';
+// import { radarrService } from './radarr.service';
+// import { sonarrService } from './sonarr.service';
 import { cache } from '../utils/cache.util';
 import { ApiError, PaginationMeta } from '../models';
 import { createPaginationMeta, paginateArray } from '../utils/pagination.util';
@@ -141,7 +142,7 @@ export class AnalyzerService {
       }
 
       // For size analysis, we need episode-level data for TV shows to get accurate file sizes
-      const isShowLibrary = items.length > 0 && items[0].type === 'show';
+      const isShowLibrary = items.length > 0 && (items[0] as any).type === 'show';
       let sizeAnalysisItems = items;
       
       if (isShowLibrary) {
@@ -215,7 +216,7 @@ export class AnalyzerService {
     }
 
     // For size analysis, we need episode-level data for TV shows to get accurate file sizes
-    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    const isShowLibrary = items.length > 0 && (items[0] as any).type === 'show';
     let analysisItems = items;
     
     if (isShowLibrary) {
@@ -278,7 +279,7 @@ export class AnalyzerService {
     }
 
     // Check if this is a TV show library and get episodes for quality analysis
-    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    const isShowLibrary = items.length > 0 && (items[0] as any).type === 'show';
     let analysisItems = items;
     
     if (isShowLibrary) {
@@ -341,7 +342,7 @@ export class AnalyzerService {
     }
 
     // Check if this is a TV show library and get episodes for content analysis
-    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    const isShowLibrary = items.length > 0 && (items[0] as any).type === 'show';
     let analysisItems = items;
     
     if (isShowLibrary) {
@@ -402,7 +403,7 @@ export class AnalyzerService {
     }
 
     // Check if this is a TV show library and get episodes for accurate size
-    const isShowLibrary = items.length > 0 && items[0].type === 'show';
+    const isShowLibrary = items.length > 0 && (items[0] as any).type === 'show';
     let analysisItems = items;
     
     if (isShowLibrary) {
@@ -428,8 +429,8 @@ export class AnalyzerService {
     // Calculate total size from all files
     let totalSize = 0;
     for (const item of analysisItems) {
-      if (item.Media && Array.isArray(item.Media)) {
-        for (const media of item.Media) {
+      if ((item as any).Media && Array.isArray((item as any).Media)) {
+        for (const media of (item as any).Media) {
           if (media.Part && Array.isArray(media.Part)) {
             for (const part of media.Part) {
               totalSize += parseInt(part.size) || 0;
@@ -576,13 +577,13 @@ export class AnalyzerService {
     for (const item of analysisItems) {
       console.log(`[AnalyzerService] Processing item: ${item.title} (type: ${item.type})`);
       console.log(`[AnalyzerService] Item structure:`, {
-        hasMedia: !!item.Media,
-        mediaIsArray: Array.isArray(item.Media),
-        mediaLength: item.Media?.length || 0
+        hasMedia: !!(item as any).Media,
+        mediaIsArray: Array.isArray((item as any).Media),
+        mediaLength: (item as any).Media?.length || 0
       });
       
-      if (item.Media && Array.isArray(item.Media)) {
-        for (const media of item.Media) {
+      if ((item as any).Media && Array.isArray((item as any).Media)) {
+        for (const media of (item as any).Media) {
           console.log(`[AnalyzerService] Processing media:`, {
             hasPart: !!media.Part,
             partIsArray: Array.isArray(media.Part),
@@ -688,8 +689,8 @@ export class AnalyzerService {
     
     // Items are already paginated
     for (const item of items) {
-      if (item.Media && Array.isArray(item.Media)) {
-        for (const media of item.Media) {
+      if ((item as any).Media && Array.isArray((item as any).Media)) {
+        for (const media of (item as any).Media) {
           const resolution = this.extractResolution(media);
           const codec = this.extractCodec(media);
           

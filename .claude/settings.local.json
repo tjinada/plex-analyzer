@@ -19,7 +19,12 @@
       "Bash(touch:*)",
       "Bash(ng build:*)",
       "Bash(npm search:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)"
     ],
     "deny": []
   }

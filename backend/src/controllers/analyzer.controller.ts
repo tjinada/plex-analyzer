@@ -168,6 +168,10 @@ export class AnalyzerController {
   async getEnhancedSizeAnalysis(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const libraryId = req.params.libraryId;
+      console.log(`=====================================`);
+      console.log(`[AnalyzerController] *** ENHANCED ENDPOINT HIT ***`);
+      console.log(`[AnalyzerController] Library: ${libraryId}, Query:`, req.query);
+      console.log(`=====================================`);
       
       if (!libraryId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -188,7 +192,9 @@ export class AnalyzerController {
       };
       
       const { limit, offset } = validatePaginationParams(paginationParams, 'size');
+      console.log(`[AnalyzerController] Calling enhancedAnalyzerService with limit: ${limit}, offset: ${offset}`);
       const result = await enhancedAnalyzerService.generateEnhancedSizeAnalysis(libraryId, limit, offset);
+      console.log(`[AnalyzerController] Received result with ${result.data.largestFiles.length} files`);
       
       const response: PaginatedApiResponse = {
         success: true,
