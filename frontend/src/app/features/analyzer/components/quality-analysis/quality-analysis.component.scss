@@ -2,6 +2,23 @@
   padding: 16px;
 }
 
+// Charts section styles
+.charts-section {
+  margin-bottom: 1.5rem;
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem;
+  }
+
+  .chart-card {
+    mat-card-content {
+      padding-top: 1rem;
+    }
+  }
+}
+
 .mat-card-header {
   display: flex;
   justify-content: space-between;

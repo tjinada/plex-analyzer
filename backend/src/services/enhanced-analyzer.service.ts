@@ -1,4 +1,4 @@
-import { TautulliAnalyzerService, MediaFile, SizeAnalysis } from './tautulli-analyzer.service';
+import { MediaFile, SizeAnalysis } from './tautulli-analyzer.service';
 import { MediaInfoService, VideoTechnicalDetails, AudioTechnicalDetails, ContainerDetails } from './mediainfo.service';
 import { QualityScorerService, QualityTier, QualityScoreComponents } from './quality-scorer.service';
 import { cache } from '../utils/cache.util';

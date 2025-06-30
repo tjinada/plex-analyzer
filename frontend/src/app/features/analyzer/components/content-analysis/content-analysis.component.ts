@@ -10,9 +10,12 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule } from '@angular/forms';
+import { ChartConfiguration } from 'chart.js';
 
 import { AnalyzerService } from '../../../../core/services/analyzer.service';
 import { LoadingComponent } from '../../../../shared';
+import { ChartService, ChartDataPoint } from '../../../../shared/services/chart.service';
+import { ChartComponent } from '../../../../shared/components/chart/chart.component';
 
 export interface ContentAnalysis {
   genreDistribution: GenreData[];
@@ -52,7 +55,8 @@ export interface RuntimeData {
     MatSelectModule,
     MatFormFieldModule,
     FormsModule,
-    LoadingComponent
+    LoadingComponent,
+    ChartComponent
   ],
   templateUrl: './content-analysis.component.html',
   styleUrl: './content-analysis.component.scss'
@@ -67,9 +71,15 @@ export class ContentAnalysisComponent implements OnInit, OnChanges {
   yearColumns: string[] = ['year', 'count'];
   runtimeColumns: string[] = ['range', 'count', 'averageRuntime'];
 
+  // Chart configurations
+  genreChart: ChartConfiguration | null = null;
+  yearChart: ChartConfiguration | null = null;
+  runtimeChart: ChartConfiguration | null = null;
+
   constructor(
     private analyzerService: AnalyzerService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private chartService: ChartService
   ) {}
 
   ngOnInit(): void {
@@ -88,11 +98,47 @@ export class ContentAnalysisComponent implements OnInit, OnChanges {
     try {
       const response = await this.analyzerService.getContentAnalysis(this.libraryId, -1).toPromise();
       this.contentData = response?.data || null;
+      this.generateCharts();
     } catch (error) {
       console.error('Failed to load content analysis:', error);
       this.snackBar.open('Failed to load content analysis', 'Close', { duration: 5000 });
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  private generateCharts(): void {
+    if (!this.contentData) return;
+
+    // Genre distribution chart (top 10)
+    if (this.contentData.genreDistribution && this.contentData.genreDistribution.length > 0) {
+      const genreData: ChartDataPoint[] = this.contentData.genreDistribution
+        .slice(0, 10)
+        .map(item => ({
+          label: item.genre,
+          value: item.count
+        }));
+      this.genreChart = this.chartService.createBarChart(genreData, 'Top Genres', true);
+    }
+
+    // Year distribution chart (recent years)
+    if (this.contentData.yearDistribution && this.contentData.yearDistribution.length > 0) {
+      const yearData: ChartDataPoint[] = this.contentData.yearDistribution
+        .slice(-20) // Last 20 years
+        .map(item => ({
+          label: item.year.toString(),
+          value: item.count
+        }));
+      this.yearChart = this.chartService.createBarChart(yearData, 'Release Years (Recent)', false);
+    }
+
+    // Runtime distribution chart
+    if (this.contentData.runtimeDistribution && this.contentData.runtimeDistribution.length > 0) {
+      const runtimeData: ChartDataPoint[] = this.contentData.runtimeDistribution.map(item => ({
+        label: item.range,
+        value: item.count
+      }));
+      this.runtimeChart = this.chartService.createBarChart(runtimeData, 'Runtime Distribution', false);
     }
   }
 

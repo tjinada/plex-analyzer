@@ -19,6 +19,11 @@
     display: flex;
     gap: 1rem;
     align-items: center;
+
+    button.active {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
   }
 }
 
@@ -191,6 +196,23 @@
         font-size: 0.8rem;
         color: #666;
       }
+    }
+  }
+}
+
+// Charts section styles
+.charts-section {
+  margin-bottom: 1.5rem;
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem;
+  }
+
+  .chart-card {
+    mat-card-content {
+      padding-top: 1rem;
     }
   }
 }
