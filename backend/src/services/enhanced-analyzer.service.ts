@@ -225,14 +225,21 @@ export class EnhancedAnalyzerService {
       // Extract technical details from file path or MediaInfo
       const technicalDetails = await this.extractTechnicalDetails(file);
       // Use both filePath and title for source detection
-      const sourceType = this.detectSourceType(file.filePath === 'Unknown' ? file.title : file.filePath);
-      const releaseGroup = this.extractReleaseGroup(file.filePath === 'Unknown' ? file.title : file.filePath);
+      const searchText = file.filePath === 'Unknown' ? file.title : file.filePath;
+      const sourceType = this.detectSourceType(searchText);
+      const releaseGroup = this.extractReleaseGroup(searchText);
+      const encodingTool = this.extractEncodingTool(searchText);
       
-      // Calculate quality score
+      // Calculate quality score with all parameters
       const qualityData = this.qualityScorer.calculateQualityScore(
         technicalDetails.video,
         file.fileSize,
-        sourceType
+        sourceType,
+        technicalDetails.audio,
+        encodingTool,
+        searchText,
+        false, // TODO: Extract multiple audio tracks from Plex data
+        false  // TODO: Extract subtitle info from Plex data
       );
 
       const enhancedFile: EnhancedMediaFile = {
@@ -256,7 +263,7 @@ export class EnhancedAnalyzerService {
         // Source info
         sourceType,
         releaseGroup,
-        encodingTool: this.extractEncodingTool(file.filePath === 'Unknown' ? file.title : file.filePath),
+        encodingTool,
         
         // Quality scoring
         qualityScore: qualityData.totalScore,
