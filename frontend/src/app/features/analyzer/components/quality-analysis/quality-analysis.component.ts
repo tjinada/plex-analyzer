@@ -59,7 +59,6 @@ export interface CodecData {
 })
 export class QualityAnalysisComponent implements OnInit, OnChanges {
   @Input() libraryId!: string;
-  @Input() limit: number = 50;
   
   qualityData: QualityAnalysis | null = null;
   isLoading = true;
@@ -79,17 +78,15 @@ export class QualityAnalysisComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['limit'] && !changes['limit'].firstChange) {
-      this.loadQualityAnalysis();
-    }
+    // No limit changes to handle anymore
   }
 
   private async loadQualityAnalysis(): Promise<void> {
     this.isLoading = true;
     
     try {
-      const result = await this.analyzerService.getQualityAnalysis(this.libraryId, this.limit).toPromise();
-      this.qualityData = result || null;
+      const response = await this.analyzerService.getQualityAnalysis(this.libraryId, -1).toPromise();
+      this.qualityData = response?.data || null;
     } catch (error) {
       console.error('Failed to load quality analysis:', error);
       this.snackBar.open('Failed to load quality analysis', 'Close', { duration: 5000 });

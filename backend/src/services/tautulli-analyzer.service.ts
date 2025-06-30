@@ -1,6 +1,7 @@
 import { tautulliService } from './tautulli.service';
 import { cache } from '../utils/cache.util';
-import { ApiError } from '../models';
+import { ApiError, PaginationMeta } from '../models';
+import { createPaginationMeta, paginateArray } from '../utils/pagination.util';
 
 export interface LibraryAnalysis {
   libraryId: string;
@@ -16,6 +17,25 @@ export interface SizeAnalysis {
   largestFiles: MediaFile[];
   sizeDistribution: SizeDistribution[];
   averageFileSize: number;
+  totalSize: number;
+  episodeBreakdown?: MediaFile[]; // For TV shows: original episode-level data
+  hasEpisodes?: boolean; // Flag to indicate if this library has episodes
+}
+
+// Paginated response interfaces
+export interface PaginatedSizeAnalysis {
+  data: SizeAnalysis;
+  pagination: PaginationMeta;
+}
+
+export interface PaginatedQualityAnalysis {
+  data: QualityAnalysis;
+  pagination: PaginationMeta;
+}
+
+export interface PaginatedContentAnalysis {
+  data: ContentAnalysis;
+  pagination: PaginationMeta;
 }
 
 export interface QualityAnalysis {
@@ -38,7 +58,9 @@ export interface MediaFile {
   resolution: string;
   codec: string;
   year?: number;
-  type: 'movie' | 'episode';
+  type: 'movie' | 'episode' | 'show';
+  showName?: string;  // For episodes, the parent show name
+  episodeCount?: number;  // For shows, the number of episodes
 }
 
 export interface SizeDistribution {
@@ -185,15 +207,19 @@ export class TautulliAnalyzerService {
   }
 
   /**
-   * Get size analysis for a library
+   * Get size analysis for a library with pagination support
    */
-  async getSizeAnalysis(libraryId: string): Promise<SizeAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}`;
-    const cached = cache.get<SizeAnalysis>(cacheKey);
+  async getSizeAnalysis(libraryId: string, limit: number = 25, offset: number = 0): Promise<PaginatedSizeAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}size:${libraryId}:${limit}:${offset}`;
+    console.log(`[TautulliAnalyzerService] Checking cache for key: ${cacheKey}`);
+    const cached = cache.get<PaginatedSizeAnalysis>(cacheKey);
     
     if (cached) {
+      console.log(`[TautulliAnalyzerService] *** RETURNING CACHED DATA *** - ${cached.data.largestFiles.length} files`);
       return cached;
     }
+    
+    console.log(`[TautulliAnalyzerService] *** NO CACHE FOUND - FETCHING FRESH DATA ***`);
 
     const mediaInfo = await tautulliService.getLibraryMediaInfo(libraryId, { 
       orderColumn: 'file_size',
@@ -201,26 +227,68 @@ export class TautulliAnalyzerService {
       length: 5000 
     });
     
-    const items = mediaInfo.data || [];
-    console.log(`[TautulliAnalyzerService] Retrieved ${items.length} items for library ${libraryId}`);
+    let items = mediaInfo.data || [];
+    console.log(`[TautulliAnalyzerService] Retrieved ${items.length} total items for library ${libraryId}`);
+    
+    // For TV shows, Tautulli's API returns shows at the library level
+    // We need to use a different approach - get ALL items with proper parameters
+    console.log(`[TautulliAnalyzerService] First item media_type: ${items.length > 0 ? items[0].media_type : 'no items'}`);
+    if (items.length > 0 && items[0].media_type === 'show') {
+      console.log(`[TautulliAnalyzerService] TV show library detected, need to fetch episodes differently`);
+      
+      // For TV shows, we need to get the media info with different parameters
+      // The Plex Analyzer service gets episodes from Plex directly, but we're using Tautulli
+      // Tautulli stores episode data differently - we need to get library items at episode level
+      
+      // Try getting all media items with no grouping
+      const allMediaInfo = await tautulliService.getLibraryMediaInfo(libraryId, {
+        orderColumn: 'file_size',
+        orderDir: 'desc',
+        length: 10000,
+        // Try to get ungrouped data
+        grouping: 0
+      });
+      
+      items = allMediaInfo.data || [];
+      console.log(`[TautulliAnalyzerService] Retrieved ${items.length} items with grouping=0`);
+      
+      // If still getting shows, we need to handle this differently
+      if (items.length > 0 && items[0].media_type === 'show') {
+        console.log(`[TautulliAnalyzerService] Still getting shows. This Tautulli library may not have episode-level data exposed.`);
+        // Return empty array to match the behavior when no items have file sizes
+        items = [];
+      }
+    }
     
     if (!items || items.length === 0) {
       console.warn(`[TautulliAnalyzerService] No items found in library ${libraryId}`);
       throw this.createError('No items found in library', 404);
     }
 
-    const sizeAnalysis = await this.generateSizeAnalysis(items);
-    cache.set(cacheKey, sizeAnalysis, this.CACHE_TTL);
+    // Generate analysis on ALL items first
+    const totalItems = items.length;
+    const fullSizeAnalysis = await this.generateSizeAnalysis(items, limit, offset);
     
-    return sizeAnalysis;
+    console.log(`[TautulliAnalyzerService] Generated analysis with ${fullSizeAnalysis.largestFiles.length} items (limit: ${limit}, offset: ${offset})`);
+
+    const pagination = createPaginationMeta(offset, limit, totalItems);
+    
+    const result: PaginatedSizeAnalysis = {
+      data: fullSizeAnalysis,
+      pagination
+    };
+    
+    console.log(`[TautulliAnalyzerService] *** CACHING FRESH DATA *** - Key: ${cacheKey}, Files: ${fullSizeAnalysis.largestFiles.length}`);
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
   }
 
   /**
-   * Get quality analysis for a library
+   * Get quality analysis for a library with pagination support
    */
-  async getQualityAnalysis(libraryId: string): Promise<QualityAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}quality:${libraryId}`;
-    const cached = cache.get<QualityAnalysis>(cacheKey);
+  async getQualityAnalysis(libraryId: string, limit: number = 50, offset: number = 0): Promise<PaginatedQualityAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}quality:${libraryId}:${limit}:${offset}`;
+    const cached = cache.get<PaginatedQualityAnalysis>(cacheKey);
     
     if (cached) {
       return cached;
@@ -233,18 +301,28 @@ export class TautulliAnalyzerService {
       throw this.createError('No items found in library', 404);
     }
 
-    const qualityAnalysis = await this.generateQualityAnalysis(items);
-    cache.set(cacheKey, qualityAnalysis, this.CACHE_TTL);
+    // Apply pagination to the analysis items
+    const totalItems = items.length;
+    const paginatedItems = paginateArray(items, offset, limit);
+
+    const qualityAnalysis = await this.generateQualityAnalysis(paginatedItems);
+    const pagination = createPaginationMeta(offset, limit, totalItems);
     
-    return qualityAnalysis;
+    const result: PaginatedQualityAnalysis = {
+      data: qualityAnalysis,
+      pagination
+    };
+    
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
   }
 
   /**
-   * Get content analysis for a library
+   * Get content analysis for a library with pagination support
    */
-  async getContentAnalysis(libraryId: string): Promise<ContentAnalysis> {
-    const cacheKey = `${this.CACHE_PREFIX}content:${libraryId}`;
-    const cached = cache.get<ContentAnalysis>(cacheKey);
+  async getContentAnalysis(libraryId: string, limit: number = 50, offset: number = 0): Promise<PaginatedContentAnalysis> {
+    const cacheKey = `${this.CACHE_PREFIX}content:${libraryId}:${limit}:${offset}`;
+    const cached = cache.get<PaginatedContentAnalysis>(cacheKey);
     
     if (cached) {
       return cached;
@@ -257,10 +335,33 @@ export class TautulliAnalyzerService {
       throw this.createError('No items found in library', 404);
     }
 
-    const contentAnalysis = await this.generateContentAnalysis(items);
-    cache.set(cacheKey, contentAnalysis, this.CACHE_TTL);
+    // Apply pagination to the analysis items
+    const totalItems = items.length;
+    const paginatedItems = paginateArray(items, offset, limit);
+
+    const contentAnalysis = await this.generateContentAnalysis(paginatedItems);
+    const pagination = createPaginationMeta(offset, limit, totalItems);
     
-    return contentAnalysis;
+    const result: PaginatedContentAnalysis = {
+      data: contentAnalysis,
+      pagination
+    };
+    
+    cache.set(cacheKey, result, this.CACHE_TTL);
+    return result;
+  }
+
+  /**
+   * Get library total size (for library cards)
+   */
+  async getLibraryTotalSize(libraryId: string): Promise<number> {
+    try {
+      const mediaInfo = await tautulliService.getLibraryMediaInfo(libraryId, { length: 1 });
+      return parseInt(mediaInfo.total_file_size || '0', 10);
+    } catch (error) {
+      console.error(`[TautulliAnalyzerService] Error getting library total size for ${libraryId}:`, error);
+      return 0;
+    }
   }
 
   /**
@@ -380,7 +481,7 @@ export class TautulliAnalyzerService {
   /**
    * Generate size analysis from Tautulli media items
    */
-  private async generateSizeAnalysis(items: any[]): Promise<SizeAnalysis> {
+  private async generateSizeAnalysis(items: any[], limit: number = 50, offset: number = 0): Promise<SizeAnalysis> {
     console.log(`[TautulliAnalyzerService] Generating size analysis for ${items.length} items`);
     const mediaFiles: MediaFile[] = [];
     
@@ -405,23 +506,48 @@ export class TautulliAnalyzerService {
     
     console.log(`[TautulliAnalyzerService] Total media files with size data: ${mediaFiles.length}`);
 
-    // Sort by file size (largest first)
-    const largestFiles = mediaFiles
-      .sort((a, b) => b.fileSize - a.fileSize)
-      .slice(0, 50); // Top 50
-
-    // Calculate size distribution
-    const sizeDistribution = this.calculateSizeDistribution(mediaFiles);
+    // For TV show libraries, aggregate episodes by show for better user experience
+    const hasEpisodes = mediaFiles.some(file => file.type === 'episode');
+    let processedFiles = mediaFiles;
     
-    // Calculate average file size
-    const totalSize = mediaFiles.reduce((sum, file) => sum + file.fileSize, 0);
-    const averageFileSize = mediaFiles.length > 0 ? totalSize / mediaFiles.length : 0;
+    if (hasEpisodes) {
+      console.log(`[TautulliAnalyzerService] TV show library detected, aggregating episodes by show`);
+      processedFiles = this.aggregateEpisodesByShow(mediaFiles);
+      console.log(`[TautulliAnalyzerService] Aggregated ${mediaFiles.length} episodes into ${processedFiles.length} shows/movies`);
+    }
 
-    return {
+    // Sort by file size (largest first) and apply pagination
+    const sortedFiles = processedFiles.sort((a, b) => b.fileSize - a.fileSize);
+    
+    // Apply pagination based on limit and offset
+    const largestFiles = limit === Number.MAX_SAFE_INTEGER 
+      ? sortedFiles // Return all items if limit is max (from -1)
+      : sortedFiles.slice(offset, offset + limit);
+
+    // Calculate size distribution using processed files
+    const sizeDistribution = this.calculateSizeDistribution(processedFiles);
+    
+    // Calculate average file size using processed files (but total size from original data)
+    const totalSize = mediaFiles.reduce((sum, file) => sum + file.fileSize, 0);
+    const averageFileSize = processedFiles.length > 0 ? totalSize / processedFiles.length : 0;
+
+    const result: SizeAnalysis = {
       largestFiles,
       sizeDistribution,
-      averageFileSize
+      averageFileSize,
+      totalSize,
+      hasEpisodes
     };
+
+    // For TV show libraries, include episode breakdown with same pagination
+    if (hasEpisodes) {
+      const sortedEpisodes = mediaFiles.sort((a, b) => b.fileSize - a.fileSize);
+      result.episodeBreakdown = limit === Number.MAX_SAFE_INTEGER 
+        ? sortedEpisodes
+        : sortedEpisodes.slice(offset, offset + limit);
+    }
+
+    return result;
   }
 
   /**
@@ -575,6 +701,83 @@ export class TautulliAnalyzerService {
     if (runtime < 120) return '90-120 min';
     if (runtime < 180) return '120-180 min';
     return '> 180 min';
+  }
+
+  /**
+   * Aggregate TV show episodes by show for better user experience
+   * Note: Tautulli might use different data structure than Plex
+   */
+  private aggregateEpisodesByShow(mediaFiles: MediaFile[]): MediaFile[] {
+    const episodes = mediaFiles.filter(file => file.type === 'episode');
+    const movies = mediaFiles.filter(file => file.type === 'movie');
+    
+    if (episodes.length === 0) {
+      // If no episodes, return original data (movies only)
+      return mediaFiles;
+    }
+    
+    // Group episodes by show name (adapt to Tautulli data structure)
+    const showGroups = episodes.reduce((groups, episode) => {
+      // For Tautulli, try to extract show name from title or use parent_title if available
+      let showName = episode.title;
+      
+      // If title contains " - " format (like Plex), extract show name
+      if (episode.title.includes(' - ')) {
+        showName = episode.title.split(' - ')[0];
+      }
+      // Otherwise, use the full title as show name (Tautulli might structure differently)
+      
+      if (!groups[showName]) {
+        groups[showName] = [];
+      }
+      groups[showName].push(episode);
+      return groups;
+    }, {} as Record<string, MediaFile[]>);
+    
+    // Create aggregated show entries
+    const aggregatedShows: MediaFile[] = Object.entries(showGroups).map(([showName, showEpisodes]) => {
+      // Calculate total size for the show
+      const totalSize = showEpisodes.reduce((sum, episode) => sum + episode.fileSize, 0);
+      
+      // Find the most common resolution and codec
+      const resolutions = showEpisodes.map(ep => ep.resolution);
+      const codecs = showEpisodes.map(ep => ep.codec);
+      const mostCommonResolution = this.getMostCommon(resolutions);
+      const mostCommonCodec = this.getMostCommon(codecs);
+      
+      // Use the show's year (from first episode)
+      const year = showEpisodes[0]?.year;
+      
+      return {
+        id: `show-${showName.replace(/[^a-zA-Z0-9]/g, '-')}`, // Generate show ID
+        title: showName,
+        filePath: `${showEpisodes.length} episodes`, // Show episode count instead of file path
+        fileSize: totalSize,
+        resolution: mostCommonResolution,
+        codec: mostCommonCodec,
+        year: year,
+        type: 'show' as const,
+        showName: showName,
+        episodeCount: showEpisodes.length
+      };
+    });
+    
+    // Return aggregated shows combined with movies
+    return [...aggregatedShows, ...movies];
+  }
+  
+  /**
+   * Helper function to find the most common item in an array
+   */
+  private getMostCommon<T>(items: T[]): T {
+    if (items.length === 0) return 'Unknown' as T;
+    
+    const counts = items.reduce((acc, item) => {
+      acc[item as string] = (acc[item as string] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return Object.entries(counts).reduce((a, b) => counts[a[0]] > counts[b[0]] ? a : b)[0] as T;
   }
 
   /**

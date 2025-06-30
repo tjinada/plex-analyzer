@@ -130,8 +130,8 @@ export class StatisticsController {
             if (!qualityOverview[quality]) {
               qualityOverview[quality] = { count: 0, size: 0, libraries: [] };
             }
-            qualityOverview[quality].count += data.count;
-            qualityOverview[quality].size += data.size;
+            qualityOverview[quality].count += (data as any).count;
+            qualityOverview[quality].size += (data as any).size;
             if (!qualityOverview[quality].libraries.includes(library.title)) {
               qualityOverview[quality].libraries.push(library.title);
             }
@@ -181,7 +181,7 @@ export class StatisticsController {
       // Transform data for easier frontend consumption
       const storageBreakdown = {
         total: globalStats.totalSize,
-        byLibrary: globalStats.libraryBreakdown.map(lib => ({
+        byLibrary: globalStats.libraryBreakdown.map((lib: any) => ({
           name: lib.title,
           type: lib.type,
           size: lib.size,
@@ -191,7 +191,7 @@ export class StatisticsController {
         summary: {
           totalFiles: globalStats.totalItems,
           averageFileSize: globalStats.averageFileSize,
-          largestLibrary: globalStats.libraryBreakdown.reduce((largest, current) => 
+          largestLibrary: globalStats.libraryBreakdown.reduce((largest: any, current: any) => 
             current.size > largest.size ? current : largest,
             globalStats.libraryBreakdown[0] || { size: 0 }
           ),

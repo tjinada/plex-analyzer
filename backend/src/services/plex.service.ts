@@ -115,7 +115,7 @@ export class PlexService {
 
     try {
       const libraries = await this.getLibraries();
-      return libraries.find(lib => lib.key === libraryId) || null;
+      return libraries.find(lib => (lib as any).key === libraryId) || null;
     } catch (error) {
       console.error(`Failed to fetch library ${libraryId}:`, error);
       throw this.createError('Failed to fetch library', 500);

@@ -105,6 +105,19 @@ export interface GlobalStats {
   }>;
 }
 
+// Pagination Models
+export interface PaginationMeta {
+  offset: number;
+  limit: number;
+  total: number;
+  hasMore: boolean;
+}
+
+export interface PaginationParams {
+  limit?: number;
+  offset?: number;
+}
+
 // API Response Models
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -115,6 +128,11 @@ export interface ApiResponse<T = any> {
     details?: any;
   };
   timestamp: string;
+}
+
+export interface PaginatedApiResponse<T = any> extends ApiResponse {
+  data: T;
+  pagination: PaginationMeta;
 }
 
 // Error Models

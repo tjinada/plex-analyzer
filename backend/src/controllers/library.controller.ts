@@ -40,13 +40,13 @@ export class LibraryController {
             // Get actual library items to count them
             const items = await plexService.getLibraryItems(library.id);
             
-            // Get size analysis for total size
-            const sizeAnalysis = await analyzerService.getSizeAnalysis(library.id);
+            // Get total size for library card
+            const totalSize = await analyzerService.getLibraryTotalSize(library.id);
             
             return {
               ...library,
               itemCount: items.length,
-              totalSize: sizeAnalysis.totalSize
+              totalSize
             };
           } catch (error) {
             console.warn(`Failed to enhance library ${library.title}:`, error);

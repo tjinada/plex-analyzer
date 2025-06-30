@@ -14,6 +14,7 @@ import { QualityAnalysisComponent } from '../quality-analysis/quality-analysis.c
 import { ContentAnalysisComponent } from '../content-analysis/content-analysis.component';
 import { LibraryService } from '../../../../core/services/library.service';
 import { Library } from '../../../../models';
+import { TabLoadingState } from '../../../../models/pagination.model';
 
 @Component({
   selector: 'app-analyzer-page',
@@ -41,15 +42,16 @@ export class AnalyzerPageComponent implements OnInit {
   selectedTabIndex = 0;
   isLoadingLibrary = true;
 
-  // Analysis configuration
-  selectedLimit: number = 50;
-  limitOptions = [
-    { value: 10, label: '10 Items' },
-    { value: 50, label: '50 Items' },
-    { value: 100, label: '100 Items' },
-    { value: 200, label: '200 Items' },
-    { value: -1, label: 'ALL Items' }
-  ];
+
+  // Tab loading states (lazy loading)
+  tabStates: { [key: string]: TabLoadingState } = {
+    size: { isLoaded: false, isLoading: false, hasError: false },
+    quality: { isLoaded: false, isLoading: false, hasError: false },
+    content: { isLoaded: false, isLoading: false, hasError: false }
+  };
+
+  // Track which tab should load initially
+  initialTabLoaded = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -83,11 +85,19 @@ export class AnalyzerPageComponent implements OnInit {
         default:
           this.selectedTabIndex = 0;
       }
+      
+      // Load initial tab after library is loaded
+      if (this.libraryId && !this.initialTabLoaded) {
+        this.initialTabLoaded = true;
+        const tabNames = ['size', 'quality', 'content'];
+        const currentTab = tabNames[this.selectedTabIndex];
+        this.loadTabDataIfNeeded(currentTab);
+      }
     });
   }
 
   /**
-   * Handle tab change
+   * Handle tab change with lazy loading
    */
   onTabChange(index: number): void {
     this.selectedTabIndex = index;
@@ -95,11 +105,15 @@ export class AnalyzerPageComponent implements OnInit {
     const tabNames = ['size', 'quality', 'content'];
     const tabName = tabNames[index];
     
+    // Update URL
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { tab: tabName },
       queryParamsHandling: 'merge'
     });
+
+    // Load tab data if not already loaded (lazy loading)
+    this.loadTabDataIfNeeded(tabName);
   }
 
   /**
@@ -138,12 +152,73 @@ export class AnalyzerPageComponent implements OnInit {
     return 'Library Analysis';
   }
 
+
   /**
-   * Handle limit change
+   * Load tab data if needed (lazy loading implementation)
    */
-  onLimitChange(): void {
-    // The child components will react to the @Input change
-    console.log(`[AnalyzerPage] Limit changed to: ${this.selectedLimit}`);
+  private loadTabDataIfNeeded(tabName: string): void {
+    const tabState = this.tabStates[tabName];
+    
+    // Don't load if already loaded, loading, or library not ready
+    if (tabState.isLoaded || tabState.isLoading || !this.libraryId) {
+      return;
+    }
+
+    console.log(`[AnalyzerPage] Loading ${tabName} analysis for library ${this.libraryId}`);
+    tabState.isLoading = true;
+    tabState.hasError = false;
+  }
+
+  /**
+   * Check if tab should show skeleton loader
+   */
+  shouldShowSkeleton(tabName: string): boolean {
+    const tabState = this.tabStates[tabName];
+    return !tabState.isLoaded && !tabState.isLoading;
+  }
+
+  /**
+   * Check if tab is currently loading
+   */
+  isTabLoading(tabName: string): boolean {
+    return this.tabStates[tabName].isLoading;
+  }
+
+  /**
+   * Mark tab as loaded (called by child components)
+   */
+  markTabAsLoaded(tabName: string): void {
+    const tabState = this.tabStates[tabName];
+    tabState.isLoaded = true;
+    tabState.isLoading = false;
+    tabState.hasError = false;
+    console.log(`[AnalyzerPage] ${tabName} analysis loaded for library ${this.libraryId}`);
+  }
+
+  /**
+   * Mark tab as error (called by child components)
+   */
+  markTabAsError(tabName: string, errorMessage: string): void {
+    const tabState = this.tabStates[tabName];
+    tabState.isLoaded = false;
+    tabState.isLoading = false;
+    tabState.hasError = true;
+    tabState.errorMessage = errorMessage;
+    console.error(`[AnalyzerPage] ${tabName} analysis failed for library ${this.libraryId}:`, errorMessage);
+  }
+
+  /**
+   * Handle loading state changes from size analysis component
+   */
+  onSizeAnalysisLoadingChange(event: { isLoading: boolean; hasError: boolean; errorMessage?: string }): void {
+    const tabState = this.tabStates['size'];
+    tabState.isLoading = event.isLoading;
+    tabState.hasError = event.hasError;
+    tabState.errorMessage = event.errorMessage;
+    
+    if (!event.isLoading && !event.hasError) {
+      tabState.isLoaded = true;
+    }
   }
 
   /**
