@@ -25,7 +25,10 @@
       "Bash(true)",
       "Bash(lsof:*)",
       "Bash(kill:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(ls:*)",
+      "Bash(sed:*)",
+      "Bash(npm run start:*)"
     ],
     "deny": []
   }
