@@ -69,7 +69,7 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
 
   // Table configuration
   basicColumns: string[] = ['title', 'fileSize', 'resolution', 'codec', 'filePath'];
-  enhancedColumns: string[] = ['title', 'fileSize', 'technical', 'quality'];
+  enhancedColumns: string[] = ['title', 'fileSize', 'videoQuality', 'audioQuality', 'quality'];
   displayedColumns: string[] = this.basicColumns;
 
   // Chart configurations
@@ -538,6 +538,72 @@ export class SizeAnalysisComponent implements OnInit, OnChanges {
     if (formatLower.includes('hdr10')) return 'hdr-hdr10';
     if (formatLower.includes('hlg')) return 'hdr-hlg';
     return 'hdr-standard';
+  }
+
+  /**
+   * Format audio channels in a user-friendly way
+   */
+  formatAudioChannels(channels: number): string {
+    switch (channels) {
+      case 1: return 'Mono';
+      case 2: return '2.0';
+      case 6: return '5.1';
+      case 8: return '7.1';
+      default: return `${channels}ch`;
+    }
+  }
+
+  /**
+   * Get audio codec from file data or filepath parsing
+   */
+  getAudioCodec(file: EnhancedMediaFile): string {
+    // First try the audioCodec field if available
+    if (file.audioCodec) {
+      return file.audioCodec;
+    }
+
+    // Fall back to parsing from filepath
+    const path = file.filePath?.toLowerCase() || '';
+    
+    // Common audio codec patterns in filenames
+    if (path.includes('atmos')) return 'Atmos';
+    if (path.includes('truehd')) return 'TrueHD';
+    if (path.includes('dts-hd') || path.includes('dtshd')) return 'DTS-HD';
+    if (path.includes('dts-x') || path.includes('dtsx')) return 'DTS:X';
+    if (path.includes('dts')) return 'DTS';
+    if (path.includes('ac3') || path.includes('dd5') || path.includes('dd+')) return 'AC3';
+    if (path.includes('aac')) return 'AAC';
+    if (path.includes('flac')) return 'FLAC';
+    if (path.includes('mp3')) return 'MP3';
+    
+    return '';
+  }
+
+  /**
+   * Get audio channels from file data or filepath parsing
+   */
+  getAudioChannels(file: EnhancedMediaFile): string {
+    // First try the audioChannels field if available
+    if (file.audioChannels) {
+      return this.formatAudioChannels(file.audioChannels);
+    }
+
+    // Fall back to parsing from filepath
+    const path = file.filePath?.toLowerCase() || '';
+    
+    // Common channel layout patterns in filenames
+    if (path.includes('7.1') || path.includes('71')) return '7.1';
+    if (path.includes('5.1') || path.includes('51')) return '5.1';
+    if (path.includes('2.0') || path.includes('stereo')) return '2.0';
+    if (path.includes('mono')) return 'Mono';
+    
+    // Try to extract from common patterns like [5.1] or (7.1)
+    const channelMatch = path.match(/[\[\(]([0-9]\.[0-9])[\]\)]/);
+    if (channelMatch) {
+      return channelMatch[1];
+    }
+    
+    return '';
   }
 
   private convertToCSV(files: (MediaFile | EnhancedMediaFile)[]): string {

@@ -109,7 +109,7 @@ export interface FilterOption {
       gap: 1rem;
       align-items: center;
       padding: 1rem;
-      background: #f8f9fa;
+      background: var(--surface-elevated);
       border-radius: 8px;
       margin-bottom: 1rem;
       flex-wrap: wrap;
@@ -136,7 +136,7 @@ export interface FilterOption {
     }
 
     .option-count {
-      color: #666;
+      color: var(--text-secondary);
       font-size: 0.8rem;
       margin-left: 0.5rem;
     }
