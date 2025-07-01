@@ -43,20 +43,15 @@ $plex-dark-theme: mat.define-dark-theme((
   density: 0,
 ));
 
-// Apply default dark theme
+// Apply dark theme globally
 @include mat.all-component-themes($plex-dark-theme);
 
-// Light theme styles
-.light-theme {
-  @include mat.all-component-colors($plex-light-theme);
-}
-
-// Dark theme styles (applied by default)
+// Dark theme styles
 .dark-theme {
   @include mat.all-component-colors($plex-dark-theme);
 }
 
-// Dark theme CSS custom properties (default)
+// Dark theme CSS custom properties (permanent)
 :root {
   --primary-color: #2196f3;
   --primary-light: #64b5f6;
@@ -66,7 +61,7 @@ $plex-dark-theme: mat.define-dark-theme((
   --accent-dark: #f57c00;
   --warn-color: #f44336;
   
-  // Dark theme colors (default)
+  // Dark theme colors
   --background-color: #121212;
   --background-elevated: #1e1e1e;
   --surface-color: #1e1e1e;
@@ -84,33 +79,13 @@ $plex-dark-theme: mat.define-dark-theme((
   --shadow-elevation-2: 0 3px 6px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.5);
   --shadow-elevation-3: 0 10px 20px rgba(0, 0, 0, 0.5), 0 6px 6px rgba(0, 0, 0, 0.6);
   
-  // Status colors for dark theme
+  // Status colors
   --success-color: #4caf50;
   --success-light: #81c784;
   --success-dark: #388e3c;
   --info-color: #2196f3;
   --warning-color: #ff9800;
   --error-color: #f44336;
-}
-
-// Light theme CSS custom properties
-.light-theme {
-  --background-color: #f5f5f5;
-  --background-elevated: #ffffff;
-  --surface-color: #ffffff;
-  --surface-elevated: #ffffff;
-  --text-primary: rgba(0, 0, 0, 0.87);
-  --text-secondary: rgba(0, 0, 0, 0.6);
-  --text-disabled: rgba(0, 0, 0, 0.38);
-  --text-hint: rgba(0, 0, 0, 0.5);
-  
-  --border-color: #e0e0e0;
-  --divider-color: rgba(0, 0, 0, 0.12);
-  --overlay-color: rgba(0, 0, 0, 0.3);
-  
-  --shadow-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-  --shadow-elevation-2: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
-  --shadow-elevation-3: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 }
 
 // Custom utility classes
@@ -279,8 +254,4 @@ h1, h2, h3, h4, h5, h6 {
   canvas {
     filter: brightness(0.9);
   }
-}
-
-.light-theme .chart-container canvas {
-  filter: none;
 }

@@ -33,7 +33,7 @@ export class ChartService {
       '#F44336'  // Poor - Red
     ],
     resolution: [
-      '#1976D2', // 4K - Dark Blue
+      '#9C27B0', // 4K - Purple (more distinct from 1080p)
       '#2196F3', // 1080p - Blue
       '#4CAF50', // 720p - Green
       '#FF9800', // 480p - Orange

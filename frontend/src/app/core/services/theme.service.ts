@@ -1,16 +1,15 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
-export type Theme = 'light' | 'dark';
+export type Theme = 'dark'; // Only dark mode available
 
 @Injectable({
   providedIn: 'root'
 })
 export class ThemeService {
-  private readonly THEME_KEY = 'plex-analyzer-theme';
-  private readonly DEFAULT_THEME: Theme = 'dark'; // Dark mode as default
+  private readonly PERMANENT_THEME: Theme = 'dark';
   
-  private themeSubject = new BehaviorSubject<Theme>(this.DEFAULT_THEME);
+  private themeSubject = new BehaviorSubject<Theme>(this.PERMANENT_THEME);
   public theme$ = this.themeSubject.asObservable();
 
   constructor() {
@@ -18,104 +17,60 @@ export class ThemeService {
   }
 
   /**
-   * Initialize theme from localStorage or use default
+   * Initialize permanent dark theme
    */
   private initializeTheme(): void {
-    const savedTheme = this.getSavedTheme();
-    const theme = savedTheme || this.DEFAULT_THEME;
-    this.setTheme(theme);
+    this.applyThemeToDOM(this.PERMANENT_THEME);
+    this.themeSubject.next(this.PERMANENT_THEME);
   }
 
   /**
-   * Get saved theme from localStorage
-   */
-  private getSavedTheme(): Theme | null {
-    if (typeof localStorage === 'undefined') {
-      return null;
-    }
-
-    const saved = localStorage.getItem(this.THEME_KEY);
-    if (saved === 'light' || saved === 'dark') {
-      return saved;
-    }
-    return null;
-  }
-
-  /**
-   * Get current theme
+   * Get current theme (always dark)
    */
   getCurrentTheme(): Theme {
-    return this.themeSubject.value;
+    return this.PERMANENT_THEME;
   }
 
   /**
-   * Check if current theme is dark
+   * Check if current theme is dark (always true)
    */
   isDarkTheme(): boolean {
-    return this.getCurrentTheme() === 'dark';
+    return true;
   }
 
   /**
-   * Check if current theme is light
+   * Check if current theme is light (always false)
    */
   isLightTheme(): boolean {
-    return this.getCurrentTheme() === 'light';
+    return false;
   }
 
   /**
-   * Set theme and apply to DOM
-   */
-  setTheme(theme: Theme): void {
-    this.applyThemeToDOM(theme);
-    this.saveTheme(theme);
-    this.themeSubject.next(theme);
-  }
-
-  /**
-   * Toggle between light and dark themes
-   */
-  toggleTheme(): void {
-    const newTheme: Theme = this.isDarkTheme() ? 'light' : 'dark';
-    this.setTheme(newTheme);
-  }
-
-  /**
-   * Apply theme classes to document body
+   * Apply dark theme classes to document body
    */
   private applyThemeToDOM(theme: Theme): void {
     const body = document.body;
     
-    // Remove existing theme classes
+    // Remove any existing theme classes (cleanup)
     body.classList.remove('light-theme', 'dark-theme');
     
-    // Add new theme class
-    body.classList.add(`${theme}-theme`);
+    // Add dark theme class
+    body.classList.add('dark-theme');
     
     // Set data attribute for easier CSS targeting
-    body.setAttribute('data-theme', theme);
+    body.setAttribute('data-theme', 'dark');
   }
 
   /**
-   * Save theme to localStorage
-   */
-  private saveTheme(theme: Theme): void {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(this.THEME_KEY, theme);
-    }
-  }
-
-  /**
-   * Get theme colors for dynamic use
+   * Get theme colors (always dark theme colors)
    */
   getThemeColors(): { primary: string; accent: string; background: string; surface: string; text: string } {
-    const isDark = this.isDarkTheme();
-    
     return {
       primary: '#2196f3',
       accent: '#ff9800',
-      background: isDark ? '#121212' : '#f5f5f5',
-      surface: isDark ? '#1e1e1e' : '#ffffff',
-      text: isDark ? 'rgba(255, 255, 255, 0.87)' : 'rgba(0, 0, 0, 0.87)'
+      background: '#121212',
+      surface: '#1e1e1e',
+      text: 'rgba(255, 255, 255, 0.87)'
     };
   }
 

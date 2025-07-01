@@ -7,11 +7,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { ConfigService } from './core/services/config.service';
 import { ThemeService } from './core/services/theme.service';
-import { ThemeToggleComponent } from './shared/components/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-root',
@@ -25,9 +23,7 @@ import { ThemeToggleComponent } from './shared/components/theme-toggle/theme-tog
     MatIconModule,
     MatSidenavModule,
     MatListModule,
-    MatProgressBarModule,
-    MatSlideToggleModule,
-    ThemeToggleComponent
+    MatProgressBarModule
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'

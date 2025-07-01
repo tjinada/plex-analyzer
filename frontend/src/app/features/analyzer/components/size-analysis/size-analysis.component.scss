@@ -174,23 +174,27 @@
         font-weight: 500;
         
         &.resolution-4k {
-          background: #e8f5e8;
-          color: #2e7d32;
+          background: rgba(156, 39, 176, 0.15);
+          color: #9C27B0;
+          border: 1px solid rgba(156, 39, 176, 0.3);
         }
         
         &.resolution-1080 {
-          background: #e3f2fd;
-          color: #1976d2;
+          background: rgba(33, 150, 243, 0.15);
+          color: var(--primary-color);
+          border: 1px solid rgba(33, 150, 243, 0.3);
         }
         
         &.resolution-720 {
-          background: #fff3e0;
-          color: #f57c00;
+          background: rgba(76, 175, 80, 0.15);
+          color: var(--success-color);
+          border: 1px solid rgba(76, 175, 80, 0.3);
         }
         
         &.resolution-480 {
-          background: #fce4ec;
-          color: #c2185b;
+          background: rgba(255, 152, 0, 0.15);
+          color: var(--accent-color);
+          border: 1px solid rgba(255, 152, 0, 0.3);
         }
       }
     }
@@ -210,7 +214,7 @@
         text-overflow: ellipsis;
         font-family: monospace;
         font-size: 0.8rem;
-        color: #666;
+        color: var(--text-secondary);
       }
     }
   }
