@@ -244,32 +244,46 @@
               </td>
             </ng-container>
 
-            <!-- Technical Details Column (Enhanced View) -->
-            <ng-container matColumnDef="technical">
-              <th mat-header-cell *matHeaderCellDef>Technical Details</th>
-              <td mat-cell *matCellDef="let file" class="technical-cell">
-                <div class="technical-info" *ngIf="isEnhancedFile(file)">
-                  <div class="tech-row">
+            <!-- Video Quality Column (Enhanced View) -->
+            <ng-container matColumnDef="videoQuality">
+              <th mat-header-cell *matHeaderCellDef>Video Quality</th>
+              <td mat-cell *matCellDef="let file" class="video-quality-cell">
+                <div class="video-quality-info" *ngIf="isEnhancedFile(file)">
+                  <div class="quality-row primary">
                     <span class="resolution-badge" [class]="'resolution-' + file.resolution.toLowerCase().replace('p', '')">
                       {{ file.resolution }}
-                    </span>
-                    <span class="codec-badge" [class]="getCodecClass(file.codec)">
-                      {{ file.codec }}
-                    </span>
-                    <span class="profile-badge">
-                      {{ file.videoProfile }}
-                    </span>
-                  </div>
-                  <div class="tech-row">
-                    <span class="bit-depth-badge" [class]="'depth-' + file.bitDepth">
-                      {{ file.bitDepth }}-bit
                     </span>
                     <span *ngIf="file.hdrFormat" class="hdr-badge" [class]="getHDRClass(file.hdrFormat)">
                       {{ file.hdrFormat }}
                     </span>
-                    <span class="bitrate-info" matTooltip="Video Bitrate">
-                      {{ formatBitrate(file.videoBitrate) }}
+                  </div>
+                  <div class="quality-row secondary">
+                    <span class="codec-badge" [class]="getCodecClass(file.codec)">{{ file.codec }}</span>
+                    <span *ngIf="file.videoProfile" class="profile-text">{{ file.videoProfile }}</span>
+                    <span class="separator">•</span>
+                    <span class="bit-depth-badge" [class]="'depth-' + file.bitDepth">
+                      {{ file.bitDepth }}-bit
                     </span>
+                  </div>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Audio Quality Column (Enhanced View) -->
+            <ng-container matColumnDef="audioQuality">
+              <th mat-header-cell *matHeaderCellDef>Audio Quality</th>
+              <td mat-cell *matCellDef="let file" class="audio-quality-cell">
+                <div class="audio-quality-info" *ngIf="isEnhancedFile(file)">
+                  <div class="quality-row primary">
+                    <span class="audio-channels" *ngIf="getAudioChannels(file)">
+                      {{ getAudioChannels(file) }}
+                    </span>
+                    <span class="audio-codec" *ngIf="getAudioCodec(file)">
+                      {{ getAudioCodec(file) }}
+                    </span>
+                  </div>
+                  <div class="quality-row secondary" *ngIf="file.audioBitrate">
+                    <span class="audio-bitrate">{{ formatBitrate(file.audioBitrate) }}</span>
                   </div>
                 </div>
               </td>

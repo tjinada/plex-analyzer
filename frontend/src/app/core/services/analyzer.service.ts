@@ -47,6 +47,8 @@ export interface MediaFile {
   type: 'movie' | 'episode' | 'show';
   showName?: string;  // For episodes, the parent show name
   episodeCount?: number;  // For shows, the number of episodes
+  audioCodec?: string;
+  audioChannels?: number;
 }
 
 export interface EnhancedMediaFile extends MediaFile {
