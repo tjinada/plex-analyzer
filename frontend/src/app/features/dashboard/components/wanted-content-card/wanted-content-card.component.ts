@@ -817,7 +817,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     }
 
     .series-header {
-      background-color: rgba(156, 39, 176, 0.1);
+      background-color: var(--surface-elevated);
       padding: 12px 16px;
       display: flex;
       align-items: center;
@@ -830,13 +830,14 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
       flex: 1;
       font-size: 16px;
       font-weight: 500;
-      color: #9c27b0;
+      color: var(--text-primary);
     }
 
     .episode-count {
       font-size: 12px;
-      color: var(--text-secondary);
-      background-color: rgba(156, 39, 176, 0.2);
+      color: var(--text-primary);
+      background-color: var(--surface-color);
+      border: 1px solid var(--border-color);
       padding: 2px 8px;
       border-radius: 12px;
     }
