@@ -23,16 +23,26 @@ app.get('/health', (_req, res) => {
 // API routes
 app.use('/api', routes);
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  const publicPath = path.join(__dirname, '..', 'public');
-  app.use(express.static(publicPath));
+// Serve static files from frontend build
+const frontendPath = path.join(__dirname, '..', '..', 'dist', 'frontend', 'browser');
+app.use(express.static(frontendPath));
+
+// Handle Angular routing - serve index.html for all non-API routes
+// Use a more compatible approach that avoids path-to-regexp issues
+app.use((req, res, next) => {
+  // Skip if this is an API route
+  if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+    return next();
+  }
   
-  // Handle Angular routing
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html'));
-  });
-}
+  // Skip if this is a static file request (already handled by express.static)
+  if (req.path.includes('.')) {
+    return next();
+  }
+  
+  // For all other routes, serve the Angular index.html
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

@@ -32,7 +32,7 @@ RUN npm ci --production --silent && npm cache clean --force
 COPY --from=build --chown=nodejs:nodejs /app/backend/dist ./backend/dist
 
 # Copy built frontend
-COPY --from=build --chown=nodejs:nodejs /app/dist/frontend ./public
+COPY --from=build --chown=nodejs:nodejs /app/dist/frontend ./dist/frontend
 
 # Create config directory for persistent storage
 RUN mkdir -p /config && chown nodejs:nodejs /config
