@@ -39,7 +39,7 @@
   h3 {
     margin: 0 0 16px 0;
     font-weight: 500;
-    color: #333;
+    color: var(--text-primary);
   }
 }
 
@@ -53,8 +53,8 @@
   }
   
   mat-chip {
-    background-color: #e3f2fd;
-    color: #1976d2;
+    background-color: rgba(33, 150, 243, 0.2);
+    color: var(--primary-color);
     font-weight: 500;
   }
 }
@@ -68,7 +68,7 @@
   
   .mat-header-cell {
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
   }
   
   .mat-cell {
@@ -82,7 +82,7 @@
   gap: 16px;
   
   .stat-card {
-    background: #f5f5f5;
+    background: var(--surface-elevated);
     border-radius: 8px;
     padding: 16px;
     text-align: center;
@@ -90,14 +90,14 @@
     .stat-value {
       font-size: 20px;
       font-weight: 600;
-      color: #1976d2;
+      color: var(--primary-color);
       margin-bottom: 4px;
       word-break: break-word;
     }
     
     .stat-label {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -108,7 +108,7 @@
   display: flex;
   gap: 24px;
   align-items: center;
-  background: #f8f9fa;
+  background: var(--surface-elevated);
   padding: 16px;
   border-radius: 8px;
   
@@ -120,7 +120,7 @@
     
     .range-label {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
@@ -128,7 +128,7 @@
     .range-value {
       font-size: 18px;
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
     }
   }
 }
@@ -136,14 +136,14 @@
 .no-data {
   text-align: center;
   padding: 48px 16px;
-  color: #666;
+  color: var(--text-secondary);
   
   mat-icon {
     font-size: 48px;
     height: 48px;
     width: 48px;
     margin-bottom: 16px;
-    color: #ccc;
+    color: var(--text-disabled);
   }
   
   p {

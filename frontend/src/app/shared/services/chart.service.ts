@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+import { ThemeService } from '../../core/services/theme.service';
 
 export interface ChartDataPoint {
   label: string;
@@ -17,6 +18,8 @@ export interface ChartColors {
   providedIn: 'root'
 })
 export class ChartService {
+
+  constructor(private themeService: ThemeService) {}
   
   private readonly defaultColors: ChartColors = {
     primary: [
@@ -39,9 +42,26 @@ export class ChartService {
   };
 
   /**
+   * Get theme-aware text color
+   */
+  private getTextColor(): string {
+    const isDarkMode = this.themeService.isDarkTheme();
+    return isDarkMode ? 'rgba(255, 255, 255, 0.87)' : 'rgba(0, 0, 0, 0.87)';
+  }
+
+  /**
+   * Get theme-aware grid color
+   */
+  private getGridColor(): string {
+    const isDarkMode = this.themeService.isDarkTheme();
+    return isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+  }
+
+  /**
    * Create pie chart configuration
    */
   createPieChart(data: ChartDataPoint[], title: string): ChartConfiguration<'pie'> {
+    const textColor = this.getTextColor();
     return {
       type: 'pie',
       data: this.transformToPieData(data),
@@ -52,11 +72,15 @@ export class ChartService {
           title: {
             display: true,
             text: title,
-            font: { size: 16 }
+            font: { size: 16 },
+            color: textColor
           },
           legend: {
             position: 'bottom',
-            labels: { usePointStyle: true }
+            labels: { 
+              usePointStyle: true,
+              color: textColor
+            }
           },
           tooltip: {
             callbacks: {
@@ -75,6 +99,7 @@ export class ChartService {
    * Create donut chart configuration
    */
   createDonutChart(data: ChartDataPoint[], title: string, colorType: keyof ChartColors = 'primary'): ChartConfiguration<'doughnut'> {
+    const textColor = this.getTextColor();
     return {
       type: 'doughnut',
       data: this.transformToDonutData(data, colorType),
@@ -85,11 +110,15 @@ export class ChartService {
           title: {
             display: true,
             text: title,
-            font: { size: 16 }
+            font: { size: 16 },
+            color: textColor
           },
           legend: {
             position: 'bottom',
-            labels: { usePointStyle: true }
+            labels: { 
+              usePointStyle: true,
+              color: textColor
+            }
           },
           tooltip: {
             callbacks: {
@@ -110,6 +139,8 @@ export class ChartService {
    * Create bar chart configuration
    */
   createBarChart(data: ChartDataPoint[], title: string, horizontal: boolean = false): ChartConfiguration<'bar'> {
+    const textColor = this.getTextColor();
+    const gridColor = this.getGridColor();
     return {
       type: 'bar',
       data: this.transformToBarData(data),
@@ -121,18 +152,31 @@ export class ChartService {
           title: {
             display: true,
             text: title,
-            font: { size: 16 }
+            font: { size: 16 },
+            color: textColor
           },
           legend: { display: false }
         },
         scales: {
           x: {
             beginAtZero: true,
-            grid: { display: horizontal }
+            grid: { 
+              display: horizontal,
+              color: gridColor
+            },
+            ticks: {
+              color: textColor
+            }
           },
           y: {
             beginAtZero: true,
-            grid: { display: !horizontal }
+            grid: { 
+              display: !horizontal,
+              color: gridColor
+            },
+            ticks: {
+              color: textColor
+            }
           }
         }
       }

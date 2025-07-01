@@ -133,8 +133,8 @@
         display: inline-block;
         
         &.type-movie {
-          background: #e3f2fd;
-          color: #1976d2;
+          background: rgba(33, 150, 243, 0.2);
+          color: var(--primary-color);
         }
         
         &.type-episode {

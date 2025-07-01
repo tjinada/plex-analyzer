@@ -159,8 +159,24 @@ h1, h2, h3, h4, h5, h6 {
 .mat-mdc-card {
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  background-color: var(--surface-color);
+  background-color: var(--surface-color) !important;
   color: var(--text-primary);
+}
+
+// Ensure card content also uses theme colors
+.mat-mdc-card-content {
+  color: var(--text-primary);
+}
+
+// Card header theming
+.mat-mdc-card-header {
+  .mat-mdc-card-title {
+    color: var(--text-primary);
+  }
+  
+  .mat-mdc-card-subtitle {
+    color: var(--text-secondary);
+  }
 }
 
 .mat-mdc-button-base {

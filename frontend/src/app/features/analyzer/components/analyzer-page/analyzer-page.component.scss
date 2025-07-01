@@ -1,11 +1,11 @@
 .analyzer-page-container {
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--background-color);
 }
 
 .page-header {
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
   padding: 1rem 0;
   position: sticky;
   top: 0;
@@ -20,7 +20,7 @@
     gap: 1rem;
 
     .back-button {
-      color: #666;
+      color: var(--text-secondary);
     }
 
     .header-text {
@@ -28,12 +28,12 @@
         margin: 0;
         font-size: 1.5rem;
         font-weight: 500;
-        color: #333;
+        color: var(--text-primary);
       }
 
       p {
         margin: 0;
-        color: #666;
+        color: var(--text-secondary);
         font-size: 0.9rem;
       }
     }
@@ -47,15 +47,15 @@
 
   ::ng-deep .mat-mdc-tab-group {
     .mat-mdc-tab-header {
-      background: white;
+      background: var(--surface-color);
       border-radius: 8px 8px 0 0;
       margin-bottom: 0;
     }
 
     .mat-mdc-tab-body-wrapper {
-      background: white;
+      background: var(--surface-color);
       border-radius: 0 0 8px 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow-elevation-1);
     }
 
     .mat-mdc-tab-body-content {
@@ -77,18 +77,18 @@
       font-size: 4rem;
       width: 4rem;
       height: 4rem;
-      color: #ccc;
+      color: var(--text-disabled);
       margin-bottom: 1rem;
     }
 
     h3 {
       margin: 0 0 1rem 0;
-      color: #333;
+      color: var(--text-primary);
       font-weight: 500;
     }
 
     p {
-      color: #666;
+      color: var(--text-secondary);
       margin: 0.5rem 0;
       line-height: 1.5;
     }
