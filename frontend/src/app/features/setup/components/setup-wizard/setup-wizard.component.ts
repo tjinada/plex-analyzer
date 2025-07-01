@@ -273,15 +273,11 @@ export class SetupWizardComponent implements OnInit {
    * Test Tautulli connection
    */
   async testTautulliConnection(): Promise<void> {
-    console.log('[Frontend] Starting Tautulli connection test...');
-    
     if (this.tautulliForm.invalid) {
-      console.log('[Frontend] Tautulli form is invalid');
       return;
     }
     
     const tautulliConfig = this.tautulliForm.value;
-    console.log('[Frontend] Tautulli config:', tautulliConfig);
     
     this.isTestingTautulli = true;
     this.tautulliConnectionStatus = null;
@@ -296,9 +292,7 @@ export class SetupWizardComponent implements OnInit {
         }
       };
 
-      console.log('[Frontend] Testing Tautulli connection without saving...');
       const testResults = await this.configService.testConnectionOnly(testData).toPromise();
-      console.log('[Frontend] Test results received:', testResults);
       
       this.tautulliConnectionStatus = testResults.data.tautulli;
       
@@ -395,12 +389,7 @@ export class SetupWizardComponent implements OnInit {
    * Save and proceed to Tautulli step
    */
   async saveAndProceedToTautulli(): Promise<void> {
-    console.log('[Frontend] saveAndProceedToTautulli called');
-    console.log('[Frontend] plexConnectionStatus:', this.plexConnectionStatus);
-    console.log('[Frontend] plexForm.valid:', this.plexForm.valid);
-    
     if (this.plexConnectionStatus === true) {
-      console.log('[Frontend] Saving Plex configuration...');
       try {
         const config: AppConfig = {
           plex: {
@@ -408,24 +397,16 @@ export class SetupWizardComponent implements OnInit {
             token: this.plexForm.value.token
           }
         };
-        console.log('[Frontend] Config to save:', config);
         
-        const result = await this.configService.updateConfig(config).toPromise();
-        console.log('[Frontend] Config saved successfully:', result);
-        
-        console.log('[Frontend] Advancing to next step...');
+        await this.configService.updateConfig(config).toPromise();
         
         // Force stepper to advance using setTimeout to ensure DOM is updated
         setTimeout(() => {
           this.stepper.selectedIndex = 1; // Go to Tautulli step (index 1)
-          console.log('[Frontend] Stepper advanced to index:', this.stepper.selectedIndex);
         }, 100);
       } catch (error) {
-        console.error('[Frontend] Failed to save Plex configuration:', error);
         this.snackBar.open('Failed to save Plex configuration', 'Close', { duration: 5000 });
       }
-    } else {
-      console.log('[Frontend] Cannot proceed - connection not successful');
     }
   }
 
@@ -525,10 +506,23 @@ export class SetupWizardComponent implements OnInit {
         }
       };
 
+      // Update config and wait for the status to be reloaded
       await this.configService.updateConfig(config).toPromise();
       
-      this.snackBar.open('Setup completed successfully!', 'Close', { duration: 3000 });
-      this.router.navigate(['/dashboard']);
+      // Explicitly reload config status and wait for it to complete
+      const updatedStatus = await this.configService.loadConfigStatus().toPromise();
+      
+      // Verify that the status is actually configured
+      if (updatedStatus && updatedStatus.isConfigured) {
+        this.snackBar.open('Setup completed successfully!', 'Close', { duration: 3000 });
+        
+        // Small delay to ensure UI updates and then navigate
+        setTimeout(() => {
+          this.router.navigate(['/dashboard']);
+        }, 500);
+      } else {
+        throw new Error('Configuration verification failed');
+      }
     } catch (error) {
       this.snackBar.open('Failed to complete setup', 'Close', { duration: 5000 });
     } finally {
