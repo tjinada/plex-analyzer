@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { SetupWizardComponent } from './features/setup/components/setup-wizard/setup-wizard.component';
+import { SettingsPageComponent } from './features/settings/components/settings-page/settings-page.component';
 import { DashboardComponent } from './features/dashboard/components/dashboard/dashboard.component';
 import { AnalyzerPageComponent } from './features/analyzer/components/analyzer-page/analyzer-page.component';
 import { configGuard } from './core/guards/config.guard';
@@ -17,6 +18,12 @@ export const routes: Routes = [
     component: SetupWizardComponent,
     canActivate: [setupGuard],
     title: 'Setup - Plex Analyzer'
+  },
+  {
+    path: 'settings',
+    component: SettingsPageComponent,
+    canActivate: [configGuard],
+    title: 'Settings - Plex Analyzer'
   },
   {
     path: 'dashboard',
