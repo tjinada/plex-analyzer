@@ -9,6 +9,7 @@
       <mat-sidenav mode="side" opened class="sidenav">
         <div class="nav-header">
           <h2>{{ title }}</h2>
+          <app-theme-toggle style="button"></app-theme-toggle>
         </div>
         
         <mat-nav-list>
@@ -22,6 +23,17 @@
             <span matListItemTitle>Settings</span>
           </a>
         </mat-nav-list>
+        
+        <!-- Theme toggle at bottom of sidebar -->
+        <div class="nav-footer">
+          <mat-list>
+            <mat-list-item class="theme-toggle-item">
+              <mat-icon matListItemIcon>palette</mat-icon>
+              <span matListItemTitle>Theme</span>
+              <app-theme-toggle style="toggle" class="theme-toggle-secondary"></app-theme-toggle>
+            </mat-list-item>
+          </mat-list>
+        </div>
       </mat-sidenav>
 
       <!-- Main content -->
@@ -33,6 +45,10 @@
 
   <!-- Full-screen setup for unconfigured app -->
   <div *ngIf="!isLoading && !isConfigured" class="setup-layout">
+    <!-- Theme toggle for setup -->
+    <div class="setup-theme-toggle">
+      <app-theme-toggle style="button"></app-theme-toggle>
+    </div>
     <router-outlet></router-outlet>
   </div>
 </div>

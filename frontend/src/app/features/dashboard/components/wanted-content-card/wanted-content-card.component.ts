@@ -137,7 +137,7 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
     }
 
     .card-avatar {
-      background-color: #ff9800;
+      background-color: var(--accent-color);
       color: white;
       display: flex;
       align-items: center;
@@ -209,7 +209,7 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
 
     .stat-item.movies {
       background-color: rgba(33, 150, 243, 0.08);
-      border: 2px solid #2196f3;
+      border: 2px solid var(--primary-color);
     }
 
     .stat-item.episodes {
@@ -221,7 +221,7 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
       position: absolute;
       bottom: 4px;
       font-size: 10px;
-      color: #666;
+      color: var(--text-secondary);
       opacity: 0.7;
       font-style: italic;
     }
@@ -240,7 +240,7 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
     }
 
     .service-badge.radarr {
-      background-color: #2196f3;
+      background-color: var(--primary-color);
       color: white;
     }
 
@@ -258,19 +258,19 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
     .stat-number {
       font-size: 28px;
       font-weight: bold;
-      color: #333;
+      color: var(--text-primary);
       margin-top: 8px;
     }
 
     .stat-label {
       font-size: 13px;
-      color: #666;
+      color: var(--text-secondary);
       font-weight: 500;
     }
 
     .recent-items h4 {
       margin: 0 0 12px 0;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
       font-weight: 500;
     }
@@ -286,9 +286,9 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
       align-items: center;
       justify-content: space-between;
       padding: 8px 12px;
-      background-color: rgba(0, 0, 0, 0.02);
+      background-color: var(--surface-elevated);
       border-radius: 4px;
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
     }
 
     .item-info {
@@ -298,13 +298,13 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
     .item-title {
       font-size: 13px;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary);
       line-height: 1.2;
     }
 
     .item-subtitle {
       font-size: 11px;
-      color: #666;
+      color: var(--text-secondary);
       margin-top: 2px;
     }
 
@@ -313,11 +313,11 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
     }
 
     .search-button {
-      color: #ff9800;
+      color: var(--accent-color);
     }
 
     .search-button:hover {
-      background-color: rgba(255, 152, 0, 0.1);
+      background-color: var(--surface-elevated);
     }
 
     .empty-state {
@@ -335,18 +335,18 @@ import { ConfirmationDialogComponent, ConfirmationDialogData } from '../../../..
       font-size: 48px;
       width: 48px;
       height: 48px;
-      color: #4caf50;
+      color: var(--success-color);
     }
 
     .empty-state h3 {
       margin: 0;
-      color: #333;
+      color: var(--text-primary);
       font-size: 16px;
     }
 
     .empty-state p {
       margin: 0;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
     }
 
@@ -694,12 +694,12 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
       justify-content: space-between;
       align-items: center;
       padding: 0 24px;
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid var(--border-color);
     }
 
     .dialog-header h2 {
       margin: 0;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .dialog-content {
@@ -714,7 +714,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
       background-color: rgba(33, 150, 243, 0.1);
       border-radius: 4px;
       font-size: 14px;
-      color: #1976d2;
+      color: var(--primary-color);
       font-weight: 500;
       display: flex;
       align-items: center;
@@ -722,7 +722,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     }
 
     .series-count {
-      color: #666;
+      color: var(--text-secondary);
       font-weight: 400;
       font-size: 12px;
     }
@@ -738,15 +738,15 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
       justify-content: space-between;
       align-items: center;
       padding: 16px;
-      border: 1px solid #e0e0e0;
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      background-color: #fafafa;
+      background-color: var(--surface-color);
       transition: all 0.2s ease;
     }
 
     .content-item:hover {
-      background-color: #f0f0f0;
-      border-color: #ccc;
+      background-color: var(--surface-elevated);
+      border-color: var(--text-disabled);
     }
 
     .item-info {
@@ -756,13 +756,13 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     .item-title {
       font-size: 16px;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 4px;
     }
 
     .item-subtitle {
       font-size: 14px;
-      color: #666;
+      color: var(--text-secondary);
       margin-bottom: 8px;
     }
 
@@ -776,8 +776,8 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
       font-size: 12px;
       padding: 2px 8px;
       border-radius: 12px;
-      background-color: rgba(0, 0, 0, 0.1);
-      color: #666;
+      background-color: var(--surface-elevated);
+      color: var(--text-secondary);
     }
 
     .meta-item.status {
@@ -811,7 +811,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     }
 
     .series-group {
-      border: 1px solid #e0e0e0;
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       overflow: hidden;
     }
@@ -822,7 +822,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
       display: flex;
       align-items: center;
       gap: 12px;
-      border-bottom: 1px solid #e0e0e0;
+      border-bottom: 1px solid var(--border-color);
     }
 
     .series-header h4 {
@@ -835,7 +835,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
 
     .episode-count {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
       background-color: rgba(156, 39, 176, 0.2);
       padding: 2px 8px;
       border-radius: 12px;
@@ -851,7 +851,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
       justify-content: space-between;
       align-items: center;
       padding: 12px 16px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--border-color);
       transition: background-color 0.2s ease;
     }
 
@@ -860,7 +860,7 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     }
 
     .episode-item:hover {
-      background-color: #f9f9f9;
+      background-color: var(--surface-elevated);
     }
 
     .episode-info {
@@ -870,13 +870,13 @@ export class WantedContentCardComponent implements OnInit, OnDestroy {
     .episode-title {
       font-size: 14px;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary);
       margin-bottom: 4px;
     }
 
     .episode-subtitle {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary);
       margin-bottom: 6px;
     }
 

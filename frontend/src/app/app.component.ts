@@ -7,8 +7,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 import { ConfigService } from './core/services/config.service';
+import { ThemeService } from './core/services/theme.service';
+import { ThemeToggleComponent } from './shared/components/theme-toggle/theme-toggle.component';
 
 @Component({
   selector: 'app-root',
@@ -22,7 +25,9 @@ import { ConfigService } from './core/services/config.service';
     MatIconModule,
     MatSidenavModule,
     MatListModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatSlideToggleModule,
+    ThemeToggleComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
@@ -32,9 +37,15 @@ export class AppComponent implements OnInit {
   isConfigured = false;
   isLoading = true;
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private themeService: ThemeService
+  ) {}
 
   ngOnInit(): void {
+    // Initialize theme service (sets dark mode as default)
+    // Theme service constructor handles initialization automatically
+    
     // Subscribe to configuration status
     this.configService.configStatus$.subscribe(status => {
       if (status) {

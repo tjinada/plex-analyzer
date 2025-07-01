@@ -218,7 +218,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
     }
 
     .card-avatar {
-      background-color: #2196f3;
+      background-color: var(--primary-color);
       color: white;
       display: flex;
       align-items: center;
@@ -262,7 +262,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
 
     .queue-summary {
       background-color: rgba(33, 150, 243, 0.05);
-      border: 2px solid #2196f3;
+      border: 2px solid var(--primary-color);
       border-radius: 8px;
       padding: 16px;
     }
@@ -276,7 +276,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
 
     .summary-header h4 {
       margin: 0;
-      color: #333;
+      color: var(--text-primary);
       font-size: 14px;
       font-weight: 600;
     }
@@ -336,7 +336,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
       left: 50%;
       transform: translateX(-50%);
       font-size: 9px;
-      color: #666;
+      color: var(--text-secondary);
       opacity: 0.7;
       font-style: italic;
     }
@@ -344,12 +344,12 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
     .stat-number {
       font-size: 18px;
       font-weight: bold;
-      color: #333;
+      color: var(--text-primary);
     }
 
     .stat-label {
       font-size: 11px;
-      color: #666;
+      color: var(--text-secondary);
       margin-top: 4px;
     }
 
@@ -357,7 +357,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
     .queue-status h4,
     .failed-downloads h4 {
       margin: 0 0 12px 0;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
       font-weight: 500;
     }
@@ -375,9 +375,9 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
       align-items: center;
       justify-content: space-between;
       padding: 12px;
-      background-color: rgba(0, 0, 0, 0.02);
+      background-color: var(--surface-elevated);
       border-radius: 8px;
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
       position: relative;
     }
 
@@ -396,7 +396,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
     }
 
     .item-service-badge.radarr {
-      background-color: #2196f3;
+      background-color: var(--primary-color);
       color: white;
     }
 
@@ -420,7 +420,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
     .failed-title {
       font-size: 13px;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary);
       line-height: 1.2;
       margin-bottom: 6px;
     }
@@ -435,7 +435,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
     .download-size,
     .download-eta {
       font-size: 11px;
-      color: #666;
+      color: var(--text-secondary);
     }
 
     .client-chip {
@@ -443,7 +443,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
       min-height: 18px;
       line-height: 18px;
       background-color: rgba(33, 150, 243, 0.2);
-      color: #1976d2;
+      color: var(--primary-color);
     }
 
     .download-progress {
@@ -459,16 +459,16 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
     }
 
     .pause-button {
-      color: #ff9800;
+      color: var(--accent-color);
     }
 
     .cancel-button,
     .remove-button {
-      color: #f44336;
+      color: var(--warn-color);
     }
 
     .retry-button {
-      color: #4caf50;
+      color: var(--success-color);
     }
 
     .status-grid {
@@ -488,17 +488,17 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
 
     .status-item.completed {
       background-color: rgba(76, 175, 80, 0.1);
-      color: #2e7d32;
+      color: var(--success-dark);
     }
 
     .status-item.failed {
       background-color: rgba(244, 67, 54, 0.1);
-      color: #c62828;
+      color: var(--error-color);
     }
 
     .status-item.queued {
-      background-color: rgba(158, 158, 158, 0.1);
-      color: #424242;
+      background-color: var(--surface-elevated);
+      color: var(--text-secondary);
     }
 
     .status-item mat-icon {
@@ -509,7 +509,7 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
 
     .failed-error {
       font-size: 11px;
-      color: #f44336;
+      color: var(--error-color);
       margin-top: 4px;
     }
 
@@ -528,18 +528,18 @@ import { BytesPipe } from '../../../../shared/pipes/bytes.pipe';
       font-size: 48px;
       width: 48px;
       height: 48px;
-      color: #4caf50;
+      color: var(--success-color);
     }
 
     .empty-state h3 {
       margin: 0;
-      color: #333;
+      color: var(--text-primary);
       font-size: 16px;
     }
 
     .empty-state p {
       margin: 0;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
     }
 

@@ -164,7 +164,7 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
     }
 
     .card-avatar {
-      background-color: #ff5722;
+      background-color: var(--warn-color);
       color: white;
       display: flex;
       align-items: center;
@@ -235,20 +235,20 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
     }
 
     .stat-item.movies {
-      background-color: rgba(255, 87, 34, 0.08);
-      border: 2px solid #ff5722;
+      background-color: rgba(244, 67, 54, 0.08);
+      border: 2px solid var(--warn-color);
     }
 
     .stat-item.episodes {
       background-color: rgba(255, 152, 0, 0.08);
-      border: 2px solid #ff9800;
+      border: 2px solid var(--accent-color);
     }
 
     .click-hint {
       position: absolute;
       bottom: 4px;
       font-size: 10px;
-      color: #666;
+      color: var(--text-secondary);
       opacity: 0.7;
       font-style: italic;
     }
@@ -267,12 +267,12 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
     }
 
     .service-badge.radarr {
-      background-color: #ff5722;
+      background-color: var(--warn-color);
       color: white;
     }
 
     .service-badge.sonarr {
-      background-color: #ff9800;
+      background-color: var(--accent-color);
       color: white;
     }
 
@@ -285,20 +285,20 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
     .stat-number {
       font-size: 28px;
       font-weight: bold;
-      color: #333;
+      color: var(--text-primary);
       margin-top: 8px;
     }
 
     .stat-label {
       font-size: 13px;
-      color: #666;
+      color: var(--text-secondary);
       font-weight: 500;
     }
 
     .priority-items h4,
     .series-summary h4 {
       margin: 0 0 12px 0;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
       font-weight: 500;
     }
@@ -316,9 +316,9 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
       align-items: center;
       justify-content: space-between;
       padding: 8px 12px;
-      background-color: rgba(0, 0, 0, 0.02);
+      background-color: var(--surface-elevated);
       border-radius: 4px;
-      border: 1px solid rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
     }
 
     .item-info,
@@ -330,14 +330,14 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
     .series-title {
       font-size: 13px;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary);
       line-height: 1.2;
     }
 
     .item-subtitle,
     .episode-count {
       font-size: 11px;
-      color: #666;
+      color: var(--text-secondary);
       margin-top: 2px;
     }
 
@@ -371,11 +371,11 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
     }
 
     .search-button {
-      color: #ff5722;
+      color: var(--warn-color);
     }
 
     .search-button:hover {
-      background-color: rgba(255, 87, 34, 0.1);
+      background-color: var(--surface-elevated);
     }
 
     .empty-state {
@@ -393,18 +393,18 @@ import { MissingMovie, MissingEpisode } from '../../../../models/arr-models';
       font-size: 48px;
       width: 48px;
       height: 48px;
-      color: #4caf50;
+      color: var(--success-color);
     }
 
     .empty-state h3 {
       margin: 0;
-      color: #333;
+      color: var(--text-primary);
       font-size: 16px;
     }
 
     .empty-state p {
       margin: 0;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
     }
 
