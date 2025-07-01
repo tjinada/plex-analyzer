@@ -6,7 +6,7 @@ $plex-accent: mat.define-palette(mat.$orange-palette, A200);
 $plex-warn: mat.define-palette(mat.$red-palette);
 
 // Create light theme
-$plex-theme: mat.define-light-theme((
+$plex-light-theme: mat.define-light-theme((
   color: (
     primary: $plex-primary,
     accent: $plex-accent,
@@ -24,42 +24,87 @@ $plex-theme: mat.define-light-theme((
   density: 0,
 ));
 
-// Apply the theme
-@include mat.all-component-themes($plex-theme);
+// Create dark theme
+$plex-dark-theme: mat.define-dark-theme((
+  color: (
+    primary: $plex-primary,
+    accent: $plex-accent,
+    warn: $plex-warn,
+  ),
+  typography: mat.define-typography-config(
+    $font-family: 'Roboto, "Helvetica Neue", sans-serif',
+    $headline-1: mat.define-typography-level(2rem, 2.5rem, 300),
+    $headline-2: mat.define-typography-level(1.75rem, 2.25rem, 400),
+    $headline-3: mat.define-typography-level(1.5rem, 2rem, 400),
+    $headline-4: mat.define-typography-level(1.25rem, 1.75rem, 400),
+    $headline-5: mat.define-typography-level(1.125rem, 1.5rem, 400),
+    $headline-6: mat.define-typography-level(1rem, 1.5rem, 500),
+  ),
+  density: 0,
+));
 
-// Custom theme variables
+// Apply dark theme globally
+@include mat.all-component-themes($plex-dark-theme);
+
+// Dark theme styles
+.dark-theme {
+  @include mat.all-component-colors($plex-dark-theme);
+}
+
+// Dark theme CSS custom properties (permanent)
 :root {
-  --primary-color: #1976d2;
-  --primary-light: #42a5f5;
-  --primary-dark: #1565c0;
+  --primary-color: #2196f3;
+  --primary-light: #64b5f6;
+  --primary-dark: #1976d2;
   --accent-color: #ff9800;
   --accent-light: #ffb74d;
   --accent-dark: #f57c00;
   --warn-color: #f44336;
   
-  --background-color: #f5f5f5;
-  --surface-color: #ffffff;
-  --text-primary: rgba(0, 0, 0, 0.87);
-  --text-secondary: rgba(0, 0, 0, 0.6);
-  --text-disabled: rgba(0, 0, 0, 0.38);
+  // Dark theme colors
+  --background-color: #121212;
+  --background-elevated: #1e1e1e;
+  --surface-color: #1e1e1e;
+  --surface-elevated: #2d2d2d;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-disabled: rgba(255, 255, 255, 0.38);
+  --text-hint: rgba(255, 255, 255, 0.5);
   
-  --border-color: #e0e0e0;
-  --divider-color: rgba(0, 0, 0, 0.12);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --divider-color: rgba(255, 255, 255, 0.12);
+  --overlay-color: rgba(0, 0, 0, 0.6);
   
-  --shadow-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-  --shadow-elevation-2: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
-  --shadow-elevation-3: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+  --shadow-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-elevation-2: 0 3px 6px rgba(0, 0, 0, 0.4), 0 3px 6px rgba(0, 0, 0, 0.5);
+  --shadow-elevation-3: 0 10px 20px rgba(0, 0, 0, 0.5), 0 6px 6px rgba(0, 0, 0, 0.6);
+  
+  // Status colors
+  --success-color: #4caf50;
+  --success-light: #81c784;
+  --success-dark: #388e3c;
+  --info-color: #2196f3;
+  --warning-color: #ff9800;
+  --error-color: #f44336;
 }
 
 // Custom utility classes
-.text-primary { color: var(--primary-color); }
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-disabled { color: var(--text-disabled); }
+.text-hint { color: var(--text-hint); }
 .text-accent { color: var(--accent-color); }
 .text-warn { color: var(--warn-color); }
-.text-muted { color: var(--text-secondary); }
+.text-success { color: var(--success-color); }
+.text-info { color: var(--info-color); }
+.text-warning { color: var(--warning-color); }
+.text-error { color: var(--error-color); }
 
 .bg-primary { background-color: var(--primary-color); }
 .bg-accent { background-color: var(--accent-color); }
 .bg-surface { background-color: var(--surface-color); }
+.bg-surface-elevated { background-color: var(--surface-elevated); }
+.bg-background { background-color: var(--background-color); }
 
 .elevation-1 { box-shadow: var(--shadow-elevation-1); }
 .elevation-2 { box-shadow: var(--shadow-elevation-2); }
@@ -70,22 +115,43 @@ body {
   font-family: 'Roboto', 'Helvetica Neue', sans-serif;
   margin: 0;
   padding: 0;
+  background-color: var(--background-color);
+  color: var(--text-primary);
 }
 
 h1, h2, h3, h4, h5, h6 {
   margin: 0 0 16px 0;
   font-weight: 400;
+  color: var(--text-primary);
 }
 
-// Smooth transitions
+// Smooth transitions for theme switching
 * {
-  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 // Custom Material Design overrides
 .mat-mdc-card {
   border-radius: 8px;
   border: 1px solid var(--border-color);
+  background-color: var(--surface-color) !important;
+  color: var(--text-primary);
+}
+
+// Ensure card content also uses theme colors
+.mat-mdc-card-content {
+  color: var(--text-primary);
+}
+
+// Card header theming
+.mat-mdc-card-header {
+  .mat-mdc-card-title {
+    color: var(--text-primary);
+  }
+  
+  .mat-mdc-card-subtitle {
+    color: var(--text-secondary);
+  }
 }
 
 .mat-mdc-button-base {
@@ -96,6 +162,60 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 16px;
 }
 
+// Update input and form controls for dark theme
+.mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    background-color: var(--surface-elevated);
+  }
+  
+  .mat-mdc-form-field-outline {
+    color: var(--border-color);
+  }
+}
+
+.mat-mdc-select-panel {
+  background-color: var(--surface-elevated);
+}
+
+.mat-mdc-option {
+  color: var(--text-primary);
+  
+  &:hover {
+    background-color: var(--surface-elevated);
+  }
+}
+
+// Dialog overrides
+.mat-mdc-dialog-container {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+}
+
+// Snackbar overrides
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--surface-elevated);
+  --mdc-snackbar-supporting-text-color: var(--text-primary);
+}
+
+// Menu overrides
+.mat-mdc-menu-panel {
+  background-color: var(--surface-elevated);
+}
+
+.mat-mdc-menu-item {
+  color: var(--text-primary);
+  
+  &:hover {
+    background-color: var(--surface-color);
+  }
+}
+
+// Tooltip overrides
+.mat-mdc-tooltip {
+  background-color: var(--surface-elevated);
+  color: var(--text-primary);
+}
+
 // Loading states
 .loading-overlay {
   position: absolute;
@@ -103,9 +223,35 @@ h1, h2, h3, h4, h5, h6 {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--overlay-color);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 999;
+}
+
+// Scrollbar styling for dark theme
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+// Chart.js dark theme support
+.chart-container {
+  canvas {
+    filter: brightness(0.9);
+  }
 }

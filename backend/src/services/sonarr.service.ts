@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { API_TIMEOUTS } from '../config/constants';
 import { ApiError } from '../models';
+import { WantedEpisode, MissingEpisode, QueueItem, EpisodeFilters, QueueFilters } from '../models/arr-models';
 
 export interface SonarrSeries {
   id: number;
@@ -316,6 +317,267 @@ export class SonarrService {
       console.error(`Failed to fetch series ${seriesId} from Sonarr:`, error);
       throw this.createError('Failed to fetch series', 500);
     }
+  }
+
+  /**
+   * Get wanted episodes (monitored episodes without files)
+   */
+  async getWantedEpisodes(filters?: EpisodeFilters): Promise<WantedEpisode[]> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Sonarr service not configured', 500);
+    }
+
+    try {
+      const params: any = {};
+      
+      if (filters?.sortBy) {
+        params.sortKey = filters.sortBy;
+        params.sortDirection = filters.sortDirection || 'asc';
+      }
+
+      // Get episodes and series data
+      const [episodesResponse, allSeries] = await Promise.all([
+        this.client.get('/wanted/missing', { params }),
+        this.getSeries()
+      ]);
+      
+      let episodes = episodesResponse.data.records || episodesResponse.data || [];
+      
+      // Create a map of series for faster lookup
+      const seriesMap = new Map(allSeries.map(series => [series.id, series]));
+      
+      // Populate series data for each episode
+      episodes = episodes.map((ep: any) => ({
+        ...ep,
+        series: seriesMap.get(ep.seriesId) || {
+          id: ep.seriesId,
+          title: 'Unknown Series',
+          added: new Date().toISOString()
+        }
+      }));
+      
+      // Apply filters
+      if (filters?.seriesId) {
+        episodes = episodes.filter((ep: any) => ep.seriesId === filters.seriesId);
+      }
+      
+      if (filters?.seasonNumber !== undefined) {
+        episodes = episodes.filter((ep: any) => ep.seasonNumber === filters.seasonNumber);
+      }
+      
+      if (filters?.monitored !== undefined) {
+        episodes = episodes.filter((ep: any) => ep.monitored === filters.monitored);
+      }
+      
+      if (filters?.hasFile !== undefined) {
+        episodes = episodes.filter((ep: any) => ep.hasFile === filters.hasFile);
+      }
+      
+      if (filters?.airDateCutoff) {
+        const cutoffDate = new Date(filters.airDateCutoff);
+        episodes = episodes.filter((ep: any) => {
+          if (!ep.airDateUtc) return false;
+          return new Date(ep.airDateUtc) <= cutoffDate;
+        });
+      }
+
+      return episodes;
+    } catch (error) {
+      console.error('Failed to fetch wanted episodes from Sonarr:', error);
+      throw this.createError('Failed to fetch wanted episodes', 500);
+    }
+  }
+
+  /**
+   * Get missing episodes (monitored episodes that have aired but are not downloaded)
+   */
+  async getMissingEpisodes(filters?: EpisodeFilters): Promise<MissingEpisode[]> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Sonarr service not configured', 500);
+    }
+
+    try {
+      const params: any = {};
+      
+      if (filters?.sortBy) {
+        params.sortKey = filters.sortBy;
+        params.sortDirection = filters.sortDirection || 'asc';
+      }
+
+      // Get episodes and series data
+      const [episodesResponse, allSeries] = await Promise.all([
+        this.client.get('/wanted/missing', { params }),
+        this.getSeries()
+      ]);
+      
+      // Filter for missing episodes (aired but not downloaded)
+      let episodes = episodesResponse.data.records || episodesResponse.data || [];
+      episodes = episodes.filter((ep: any) => {
+        if (!ep.airDateUtc) return false;
+        const airDate = new Date(ep.airDateUtc);
+        const now = new Date();
+        return airDate <= now && !ep.hasFile;
+      });
+      
+      // Create a map of series for faster lookup
+      const seriesMap = new Map(allSeries.map(series => [series.id, series]));
+      
+      // Populate series data for each episode
+      episodes = episodes.map((ep: any) => ({
+        ...ep,
+        series: seriesMap.get(ep.seriesId) || {
+          id: ep.seriesId,
+          title: 'Unknown Series',
+          added: new Date().toISOString()
+        }
+      }));
+      
+      // Apply additional filters
+      if (filters?.seriesId) {
+        episodes = episodes.filter((ep: any) => ep.seriesId === filters.seriesId);
+      }
+      
+      if (filters?.seasonNumber !== undefined) {
+        episodes = episodes.filter((ep: any) => ep.seasonNumber === filters.seasonNumber);
+      }
+      
+      if (filters?.monitored !== undefined) {
+        episodes = episodes.filter((ep: any) => ep.monitored === filters.monitored);
+      }
+
+      return episodes;
+    } catch (error) {
+      console.error('Failed to fetch missing episodes from Sonarr:', error);
+      throw this.createError('Failed to fetch missing episodes', 500);
+    }
+  }
+
+  /**
+   * Get download queue from Sonarr
+   */
+  async getQueue(filters?: QueueFilters): Promise<QueueItem[]> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Sonarr service not configured', 500);
+    }
+
+    try {
+      const params: any = {};
+      
+      if (filters?.includeUnknownSeriesItems !== undefined) {
+        params.includeUnknownSeriesItems = filters.includeUnknownSeriesItems;
+      }
+
+      const response = await this.client.get('/queue', { params });
+      
+      let queueItems = response.data.records || response.data || [];
+      
+      // Apply filters
+      if (filters?.status) {
+        queueItems = queueItems.filter((item: any) => item.status === filters.status);
+      }
+      
+      if (filters?.protocol) {
+        queueItems = queueItems.filter((item: any) => item.protocol === filters.protocol);
+      }
+      
+      if (filters?.downloadClient) {
+        queueItems = queueItems.filter((item: any) => item.downloadClient === filters.downloadClient);
+      }
+
+      return queueItems;
+    } catch (error) {
+      console.error('Failed to fetch queue from Sonarr:', error);
+      throw this.createError('Failed to fetch queue', 500);
+    }
+  }
+
+  /**
+   * Trigger manual search for episodes
+   */
+  async searchEpisodes(episodeIds: number[]): Promise<boolean> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Sonarr service not configured', 500);
+    }
+
+    try {
+      await this.client.post('/command', {
+        name: 'EpisodeSearch',
+        episodeIds: episodeIds
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to trigger search for episodes ${episodeIds.join(', ')}:`, error);
+      throw this.createError('Failed to trigger episode search', 500);
+    }
+  }
+
+  /**
+   * Trigger manual search for entire series
+   */
+  async searchSeries(seriesId: number): Promise<boolean> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Sonarr service not configured', 500);
+    }
+
+    try {
+      await this.client.post('/command', {
+        name: 'SeriesSearch',
+        seriesId: seriesId
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to trigger search for series ${seriesId}:`, error);
+      throw this.createError('Failed to trigger series search', 500);
+    }
+  }
+
+  /**
+   * Remove item from queue
+   */
+  async removeFromQueue(queueId: number, removeFromClient: boolean = false, blacklist: boolean = false): Promise<boolean> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Sonarr service not configured', 500);
+    }
+
+    try {
+      const params = {
+        removeFromClient: removeFromClient.toString(),
+        blacklist: blacklist.toString()
+      };
+
+      await this.client.delete(`/queue/${queueId}`, { params });
+      return true;
+    } catch (error) {
+      console.error(`Failed to remove queue item ${queueId}:`, error);
+      throw this.createError('Failed to remove queue item', 500);
+    }
+  }
+
+  /**
+   * Get queue summary statistics
+   */
+  async getQueueSummary(): Promise<{
+    totalItems: number;
+    totalSize: number;
+    totalSizeLeft: number;
+    downloading: number;
+    completed: number;
+    failed: number;
+    paused: number;
+  }> {
+    const queue = await this.getQueue();
+    
+    const summary = {
+      totalItems: queue.length,
+      totalSize: queue.reduce((sum, item) => sum + (item.size || 0), 0),
+      totalSizeLeft: queue.reduce((sum, item) => sum + (item.sizeleft || 0), 0),
+      downloading: queue.filter(item => item.status === 'downloading').length,
+      completed: queue.filter(item => item.status === 'completed').length,
+      failed: queue.filter(item => item.status === 'failed').length,
+      paused: queue.filter(item => item.status === 'paused').length
+    };
+
+    return summary;
   }
 
   /**

@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { API_TIMEOUTS } from '../config/constants';
 import { ApiError } from '../models';
+import { WantedMovie, MissingMovie, QueueItem, MovieFilters, QueueFilters } from '../models/arr-models';
 
 export interface RadarrMovie {
   id: number;
@@ -241,6 +242,208 @@ export class RadarrService {
       console.error(`Failed to fetch movie ${movieId} from Radarr:`, error);
       throw this.createError('Failed to fetch movie', 500);
     }
+  }
+
+  /**
+   * Get wanted movies (monitored movies without files)
+   */
+  async getWantedMovies(filters?: MovieFilters): Promise<WantedMovie[]> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Radarr service not configured', 500);
+    }
+
+    try {
+      // Build query parameters
+      const params: any = {};
+      
+      if (filters?.monitored !== undefined) {
+        params.monitored = filters.monitored;
+      }
+      if (filters?.qualityProfileId) {
+        params.qualityProfileId = filters.qualityProfileId;
+      }
+      if (filters?.minimumAvailability) {
+        params.minimumAvailability = filters.minimumAvailability;
+      }
+      if (filters?.sortBy) {
+        params.sortKey = filters.sortBy;
+        params.sortDirection = filters.sortDirection || 'asc';
+      }
+
+      const response = await this.client.get('/wanted/missing', { params });
+      
+      // Filter client-side for additional criteria
+      let movies = response.data.records || response.data || [];
+      
+      if (filters?.hasFile !== undefined) {
+        movies = movies.filter((movie: any) => movie.hasFile === filters.hasFile);
+      }
+      
+      if (filters?.year) {
+        movies = movies.filter((movie: any) => movie.year === filters.year);
+      }
+      
+      if (filters?.genres && filters.genres.length > 0) {
+        movies = movies.filter((movie: any) => 
+          movie.genres && movie.genres.some((genre: string) => filters.genres!.includes(genre))
+        );
+      }
+
+      return movies;
+    } catch (error) {
+      console.error('Failed to fetch wanted movies from Radarr:', error);
+      throw this.createError('Failed to fetch wanted movies', 500);
+    }
+  }
+
+  /**
+   * Get missing movies (monitored movies that are available but not downloaded)
+   */
+  async getMissingMovies(filters?: MovieFilters): Promise<MissingMovie[]> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Radarr service not configured', 500);
+    }
+
+    try {
+      const params: any = {};
+      
+      if (filters?.sortBy) {
+        params.sortKey = filters.sortBy;
+        params.sortDirection = filters.sortDirection || 'asc';
+      }
+
+      const response = await this.client.get('/wanted/missing', { params });
+      
+      // Filter for missing movies (available but not downloaded)
+      let movies = response.data.records || response.data || [];
+      movies = movies.filter((movie: any) => movie.isAvailable && !movie.hasFile);
+      
+      // Apply additional filters
+      if (filters?.monitored !== undefined) {
+        movies = movies.filter((movie: any) => movie.monitored === filters.monitored);
+      }
+      
+      if (filters?.qualityProfileId) {
+        movies = movies.filter((movie: any) => movie.qualityProfileId === filters.qualityProfileId);
+      }
+      
+      if (filters?.year) {
+        movies = movies.filter((movie: any) => movie.year === filters.year);
+      }
+
+      return movies;
+    } catch (error) {
+      console.error('Failed to fetch missing movies from Radarr:', error);
+      throw this.createError('Failed to fetch missing movies', 500);
+    }
+  }
+
+  /**
+   * Get download queue from Radarr
+   */
+  async getQueue(filters?: QueueFilters): Promise<QueueItem[]> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Radarr service not configured', 500);
+    }
+
+    try {
+      const params: any = {};
+      
+      if (filters?.includeUnknownMovieItems !== undefined) {
+        params.includeUnknownMovieItems = filters.includeUnknownMovieItems;
+      }
+
+      const response = await this.client.get('/queue', { params });
+      
+      let queueItems = response.data.records || response.data || [];
+      
+      // Apply filters
+      if (filters?.status) {
+        queueItems = queueItems.filter((item: any) => item.status === filters.status);
+      }
+      
+      if (filters?.protocol) {
+        queueItems = queueItems.filter((item: any) => item.protocol === filters.protocol);
+      }
+      
+      if (filters?.downloadClient) {
+        queueItems = queueItems.filter((item: any) => item.downloadClient === filters.downloadClient);
+      }
+
+      return queueItems;
+    } catch (error) {
+      console.error('Failed to fetch queue from Radarr:', error);
+      throw this.createError('Failed to fetch queue', 500);
+    }
+  }
+
+  /**
+   * Trigger manual search for a movie
+   */
+  async searchMovie(movieId: number): Promise<boolean> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Radarr service not configured', 500);
+    }
+
+    try {
+      await this.client.post('/command', {
+        name: 'MoviesSearch',
+        movieIds: [movieId]
+      });
+      return true;
+    } catch (error) {
+      console.error(`Failed to trigger search for movie ${movieId}:`, error);
+      throw this.createError('Failed to trigger movie search', 500);
+    }
+  }
+
+  /**
+   * Remove item from queue
+   */
+  async removeFromQueue(queueId: number, removeFromClient: boolean = false, blacklist: boolean = false): Promise<boolean> {
+    if (!this.isConfigured || !this.client) {
+      throw this.createError('Radarr service not configured', 500);
+    }
+
+    try {
+      const params = {
+        removeFromClient: removeFromClient.toString(),
+        blacklist: blacklist.toString()
+      };
+
+      await this.client.delete(`/queue/${queueId}`, { params });
+      return true;
+    } catch (error) {
+      console.error(`Failed to remove queue item ${queueId}:`, error);
+      throw this.createError('Failed to remove queue item', 500);
+    }
+  }
+
+  /**
+   * Get queue summary statistics
+   */
+  async getQueueSummary(): Promise<{
+    totalItems: number;
+    totalSize: number;
+    totalSizeLeft: number;
+    downloading: number;
+    completed: number;
+    failed: number;
+    paused: number;
+  }> {
+    const queue = await this.getQueue();
+    
+    const summary = {
+      totalItems: queue.length,
+      totalSize: queue.reduce((sum, item) => sum + (item.size || 0), 0),
+      totalSizeLeft: queue.reduce((sum, item) => sum + (item.sizeleft || 0), 0),
+      downloading: queue.filter(item => item.status === 'downloading').length,
+      completed: queue.filter(item => item.status === 'completed').length,
+      failed: queue.filter(item => item.status === 'failed').length,
+      paused: queue.filter(item => item.status === 'paused').length
+    };
+
+    return summary;
   }
 
   /**

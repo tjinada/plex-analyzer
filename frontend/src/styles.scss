@@ -17,7 +17,7 @@ html, body {
 body { 
   margin: 0; 
   font-family: 'Roboto', 'Helvetica Neue', sans-serif; 
-  background-color: #f5f5f5;
+  background-color: var(--background-color);
   color: var(--text-primary);
 }
 
@@ -48,6 +48,37 @@ body {
 .flex-space-around { justify-content: space-around; }
 .flex-grow { flex-grow: 1; }
 
+// Notification styles - updated for dark theme support
+.success-snackbar {
+  --mdc-snackbar-container-color: var(--success-color);
+  --mdc-snackbar-supporting-text-color: white;
+  --mat-snack-bar-button-color: white;
+}
+
+.error-snackbar {
+  --mdc-snackbar-container-color: var(--error-color);
+  --mdc-snackbar-supporting-text-color: white;
+  --mat-snack-bar-button-color: white;
+}
+
+.warning-snackbar {
+  --mdc-snackbar-container-color: var(--warning-color);
+  --mdc-snackbar-supporting-text-color: white;
+  --mat-snack-bar-button-color: white;
+}
+
+.info-snackbar {
+  --mdc-snackbar-container-color: var(--info-color);
+  --mdc-snackbar-supporting-text-color: white;
+  --mat-snack-bar-button-color: white;
+}
+
+.loading-snackbar {
+  --mdc-snackbar-container-color: var(--text-secondary);
+  --mdc-snackbar-supporting-text-color: var(--text-primary);
+  --mat-snack-bar-button-color: var(--text-primary);
+}
+
 // Grid utilities
 .grid { display: grid; }
 .grid-gap { gap: 16px; }
@@ -70,15 +101,15 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--surface-color);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--text-disabled);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--text-secondary);
 }
